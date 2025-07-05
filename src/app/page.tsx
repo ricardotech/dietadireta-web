@@ -111,12 +111,12 @@ function Header() {
   return (
     <header className="p-4 flex border-b border-[#F0F0F0] bg-white fixed w-full z-50 h-[75px]">
       <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
-        <div className="flex items-center">
-          <h1 className="text-4xl font-bold">🥦</h1>
-          <div className="ml-4">
-            <h1 className="text-xl font-bold">Nutri Inteligente</h1>
-            <p className="text-sm -mt-1 text-gray-600">O maior site de dietas do Brasil</p>
-          </div>
+        <div className="flex flex-col">
+          <img
+            src="/logo.png"
+            alt="Nutri Inteligente Logo"
+            className="h-10 w-auto mb-3"
+          />
         </div>
 
         {/* Desktop Navigation */}

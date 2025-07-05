@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Auth schemas matching the API
 export const signUpSchema = z.object({
   email: z.string().email('Email inválido'),
-  phoneNumber: z.string().min(10, 'Número deve ter pelo menos 10 dígitos'),
+  phoneNumber: z.string().min(10, 'Número deve ter pelo menos 10 dígitos').optional(),
   password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
 });
 
@@ -102,5 +102,39 @@ export class AuthService {
 
   static isAuthenticated(): boolean {
     return this.getAuth() !== null;
+  }
+
+  static async forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      const error: AuthError = await response.json();
+      throw new Error(error.error || 'Erro ao solicitar redefinição de senha');
+    }
+
+    return response.json();
+  }
+
+  static async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token, password }),
+    });
+
+    if (!response.ok) {
+      const error: AuthError = await response.json();
+      throw new Error(error.error || 'Erro ao redefinir senha');
+    }
+
+    return response.json();
   }
 }

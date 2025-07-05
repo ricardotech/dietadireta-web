@@ -22,6 +22,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
 
   const signUpForm = useForm<SignUpData>({
     resolver: zodResolver(signUpSchema),
@@ -73,15 +76,37 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
   const switchMode = () => {
     setIsSignUp(!isSignUp);
     setError(null);
+    setIsForgotPassword(false);
+    setForgotPasswordMessage(null);
     signUpForm.reset();
     signInForm.reset();
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      setError('Por favor, digite seu email');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await AuthService.forgotPassword(forgotPasswordEmail);
+      setForgotPasswordMessage(response.message);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao solicitar redefinição de senha');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center p-4 pt-8 sm:pt-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-4 flex items-center justify-between rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
@@ -89,9 +114,11 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">
-                {isSignUp ? 'Criar Conta' : 'Fazer Login'}
+                {isForgotPassword ? 'Esqueci minha senha' : isSignUp ? 'Criar Conta' : 'Fazer Login'}
               </h2>
-              <p className="text-sm text-gray-600">Para finalizar sua compra</p>
+              <p className="text-sm text-gray-600">
+                {isForgotPassword ? 'Digite seu email para redefinir' : 'Para finalizar sua compra'}
+              </p>
             </div>
           </div>
           <Button
@@ -105,18 +132,20 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
         </div>
 
         <div className="p-6">
-          {/* Selected Plan Info */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-green-900">Plano Selecionado</p>
-                <p className="text-sm text-green-700">{planName}</p>
+          {/* Selected Plan Info - Only show if not in forgot password mode */}
+          {!isForgotPassword && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-green-900">Plano Selecionado</p>
+                  <p className="text-sm text-green-700">{planName}</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -124,7 +153,50 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
             </div>
           )}
 
-          {isSignUp ? (
+          {forgotPasswordMessage && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <p className="text-green-700 text-sm">{forgotPasswordMessage}</p>
+            </div>
+          )}
+
+          {isForgotPassword ? (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="forgot-email" className="text-sm font-medium text-gray-700">
+                  Email
+                </Label>
+                <div className="relative mt-1">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    className="pl-10"
+                    value={forgotPasswordEmail}
+                    onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleForgotPassword}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 text-base"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Enviando...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Enviar Instruções
+                  </div>
+                )}
+              </Button>
+            </div>
+          ) : isSignUp ? (
             <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
               <div>
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">
@@ -149,7 +221,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
 
               <div>
                 <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                  Telefone
+                  Telefone (opcional)
                 </Label>
                 <div className="relative mt-1">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -282,20 +354,44 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
                   </div>
                 )}
               </Button>
+
+              {/* Forgot Password Link for Login Form */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-sm text-green-600 hover:text-green-700 font-medium"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
             </form>
           )}
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}
-              <button
-                type="button"
-                onClick={switchMode}
-                className="ml-1 text-green-600 hover:text-green-700 font-medium"
-              >
-                {isSignUp ? 'Fazer Login' : 'Criar Conta'}
-              </button>
-            </p>
+            {isForgotPassword ? (
+              <p className="text-sm text-gray-600">
+                Lembrou da senha?
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(false)}
+                  className="ml-1 text-green-600 hover:text-green-700 font-medium"
+                >
+                  Voltar ao login
+                </button>
+              </p>
+            ) : (
+              <p className="text-sm text-gray-600">
+                {isSignUp ? 'Já tem uma conta?' : 'Não tem uma conta?'}
+                <button
+                  type="button"
+                  onClick={switchMode}
+                  className="ml-1 text-green-600 hover:text-green-700 font-medium"
+                >
+                  {isSignUp ? 'Fazer Login' : 'Criar Conta'}
+                </button>
+              </p>
+            )}
           </div>
 
           <div className="mt-4 text-center">
