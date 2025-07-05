@@ -7,6 +7,7 @@ import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
+import { AuthModal } from './AuthModal';
 
 interface PricingPageProps {
     onBack: () => void;
@@ -137,6 +138,21 @@ function Header() {
 }
 
 export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
+    const [authModal, setAuthModal] = useState<{ isOpen: boolean; planId: string; planName: string }>({
+        isOpen: false,
+        planId: '',
+        planName: ''
+    });
+    
+    const handlePlanSelect = (planId: string, planName: string) => {
+        setAuthModal({ isOpen: true, planId, planName });
+    };
+
+    const handleAuthSuccess = (planId: string) => {
+        setAuthModal({ isOpen: false, planId: '', planName: '' });
+        onPurchase(planId);
+    };
+
     const plans = [
         {
             id: "diet-only",
@@ -279,7 +295,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                                     <div className="mt-auto">
                                         {/* Button */}
                                         <Button
-                                            onClick={() => onPurchase(plan.id)}
+                                            onClick={() => handlePlanSelect(plan.id, plan.name)}
                                             className={`w-full py-7 px-8 text-xl font-bold ${plan.buttonColor} text-white rounded-lg transition-colors duration-200 mb-2`}
                                         >
                                             {plan.buttonText}
@@ -364,7 +380,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                                         </div>
                                         
                                         <blockquote className="text-gray-700 text-lg leading-relaxed mb-6 flex-1 italic">
-                                            "{testimonial.text}"
+                                            &ldquo;{testimonial.text}&rdquo;
                                         </blockquote>
                                         
                                         <div className="border-t border-gray-100 pt-6 mt-auto">
@@ -471,6 +487,15 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                     Voltar para o formulário
                 </Button>
             </div>
+
+            {/* Auth Modal */}
+            <AuthModal
+                isOpen={authModal.isOpen}
+                onClose={() => setAuthModal({ isOpen: false, planId: '', planName: '' })}
+                onSuccess={handleAuthSuccess}
+                selectedPlan={authModal.planId}
+                planName={authModal.planName}
+            />
         </main>
     );
 }
