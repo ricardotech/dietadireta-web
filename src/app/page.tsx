@@ -273,6 +273,12 @@ function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
                   {...field}
                   placeholder="Peso (kg)"
                   className={`py-8 px-4 text-xl ${errors.weight ? 'border-red-500 focus:border-red-500' : ''}`}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9.]/g, '');
+                    field.onChange(value);
+                  }}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               )}
             />
@@ -293,6 +299,12 @@ function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
                   {...field}
                   placeholder="Altura (cm)"
                   className={`py-8 px-4 text-xl ${errors.height ? 'border-red-500 focus:border-red-500' : ''}`}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    field.onChange(value);
+                  }}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               )}
             />
@@ -313,6 +325,12 @@ function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
                   {...field}
                   placeholder="Idade"
                   className={`py-8 px-4 text-xl ${errors.age ? 'border-red-500 focus:border-red-500' : ''}`}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '');
+                    field.onChange(value);
+                  }}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               )}
             />
@@ -496,6 +514,7 @@ function App() {
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
+    console.log('Form data:', data);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIsSubmitting(false);
