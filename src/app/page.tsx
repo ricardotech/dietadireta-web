@@ -1,11 +1,12 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { ChartLine, LineChart, Menu, Home, FileText, User, HelpCircle, LogOut, X, Check } from "lucide-react";
+import { ChartLine, LineChart, Menu, Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon } from "lucide-react";
 import { useState } from "react";
 
 function Header() {
@@ -19,7 +20,7 @@ function Header() {
   ];
 
   return (
-    <header className="p-4 flex border-b border-[#F0F0F0] bg-white">
+    <header className="p-4 flex border-b border-[#F0F0F0] bg-white fixed w-full z-50 h-[75px]">
       <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
         <div className="flex items-center">
           <h1 className="text-4xl font-bold">🥦</h1>
@@ -28,7 +29,7 @@ function Header() {
             <p className="text-sm -mt-1 text-gray-600">O maior site de dietas do Brasil</p>
           </div>
         </div>
-        
+
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6">
           {navigationItems.map((item) => (
@@ -47,8 +48,9 @@ function Header() {
         <div className="md:hidden">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Menu className="w-5 h-5" />
+              <Button className="bg-gray-100">
+                <MenuIcon className="w-8 h-8 text-black" />
+                <span className="sr-only">Menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-80 p-0 bg-white [&>button:first-of-type]:hidden">
@@ -63,9 +65,9 @@ function Header() {
                       <p className="text-xs text-gray-500">Sua alimentação ideal</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setIsOpen(false)}
                     className="h-9 w-9 p-0 hover:bg-white/50 rounded-full transition-colors"
                   >
@@ -79,15 +81,13 @@ function Header() {
                     <div key={item.label} className="relative">
                       <Button
                         variant="ghost"
-                        className={`w-full justify-start px-6 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-none relative group ${
-                          index === 0 ? 'bg-gray-50' : ''
-                        }`}
+                        className={`w-full justify-start px-6 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-none relative group ${index === 0 ? 'bg-gray-50' : ''
+                          }`}
                         onClick={() => setIsOpen(false)}
                       >
                         {/* Green accent line for active/hover */}
-                        <div className={`absolute left-0 top-0 bottom-0 w-1 bg-green-500 transition-opacity ${
-                          index === 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                        }`} />
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 bg-green-500 transition-opacity ${index === 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                          }`} />
                         <item.icon className="w-5 h-5 mr-4 text-gray-600" />
                         {item.label}
                       </Button>
@@ -166,7 +166,7 @@ function MedidasCorporais() {
           <SelectValue placeholder="Objetivo" />
         </SelectTrigger>
 
-        <SelectContent className="mt-1">
+        <SelectContent className="my-1">
           {objectives.map((o) => (
             <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
               {o.label}
@@ -210,7 +210,7 @@ function MedidasCorporais() {
           <SelectValue placeholder="Calorias diárias 🔥" />
         </SelectTrigger>
 
-        <SelectContent className="mt-1">
+        <SelectContent className="my-1">
           {calories.map((o) => (
             <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
               {o.label}
@@ -253,7 +253,7 @@ function MedidasCorporais() {
           <SelectValue placeholder="Horários para Refeição ⏱️" />
         </SelectTrigger>
 
-        <SelectContent>
+        <SelectContent className="my-1">
           {schedules.map((s) => (
             <SelectItem key={s.value} value={s.value} className="text-xl py-4 px-6">
               {s.label}
@@ -343,7 +343,7 @@ function PreferenciasAlimentares() {
             <h1 className="text-xl font-black">Café da manhã</h1>
           </div>
           <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-          
+
           {/* Progress Bar and Counter */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -355,20 +355,20 @@ function PreferenciasAlimentares() {
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
                 style={{ width: `${getProgressPercentage()}%` }}
               ></div>
             </div>
           </div>
         </div>
-        
+
         <div className="p-4">
           <div className="grid grid-cols-3 gap-3">
             {foodPreferences.map((preference) => {
               const isSelected = selectedItems.includes(preference.value);
               const isDisabled = !isSelected && selectedItems.length >= maxItems;
-              
+
               return (
                 <button
                   key={preference.value}
@@ -376,9 +376,9 @@ function PreferenciasAlimentares() {
                   disabled={isDisabled}
                   className={`
                     text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
-                      : isDisabled 
+                    ${isSelected
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : isDisabled
                         ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
                     }
@@ -454,7 +454,7 @@ function LancheDaManha() {
             <h1 className="text-xl font-black">Lanche da Manhã</h1>
           </div>
           <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-          
+
           {/* Progress Bar and Counter */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -466,20 +466,20 @@ function LancheDaManha() {
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
                 style={{ width: `${getProgressPercentage()}%` }}
               ></div>
             </div>
           </div>
         </div>
-        
+
         <div className="p-4">
           <div className="grid grid-cols-3 gap-3">
             {foodPreferences.map((preference) => {
               const isSelected = selectedItems.includes(preference.value);
               const isDisabled = !isSelected && selectedItems.length >= maxItems;
-              
+
               return (
                 <button
                   key={preference.value}
@@ -487,9 +487,9 @@ function LancheDaManha() {
                   disabled={isDisabled}
                   className={`
                     text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
-                      : isDisabled 
+                    ${isSelected
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : isDisabled
                         ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
                     }
@@ -572,7 +572,7 @@ function Almoco() {
             <h1 className="text-xl font-black">Almoço</h1>
           </div>
           <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-          
+
           {/* Progress Bar and Counter */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -584,20 +584,20 @@ function Almoco() {
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
                 style={{ width: `${getProgressPercentage()}%` }}
               ></div>
             </div>
           </div>
         </div>
-        
+
         <div className="p-4">
           <div className="grid grid-cols-3 gap-3">
             {foodPreferences.map((preference) => {
               const isSelected = selectedItems.includes(preference.value);
               const isDisabled = !isSelected && selectedItems.length >= maxItems;
-              
+
               return (
                 <button
                   key={preference.value}
@@ -605,9 +605,9 @@ function Almoco() {
                   disabled={isDisabled}
                   className={`
                     text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
-                      : isDisabled 
+                    ${isSelected
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : isDisabled
                         ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
                     }
@@ -683,7 +683,7 @@ function LancheDaTarde() {
             <h1 className="text-xl font-black">Lanche da Tarde</h1>
           </div>
           <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-          
+
           {/* Progress Bar and Counter */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -695,20 +695,20 @@ function LancheDaTarde() {
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
                 style={{ width: `${getProgressPercentage()}%` }}
               ></div>
             </div>
           </div>
         </div>
-        
+
         <div className="p-4">
           <div className="grid grid-cols-3 gap-3">
             {foodPreferences.map((preference) => {
               const isSelected = selectedItems.includes(preference.value);
               const isDisabled = !isSelected && selectedItems.length >= maxItems;
-              
+
               return (
                 <button
                   key={preference.value}
@@ -716,9 +716,9 @@ function LancheDaTarde() {
                   disabled={isDisabled}
                   className={`
                     text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
-                      : isDisabled 
+                    ${isSelected
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : isDisabled
                         ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
                     }
@@ -801,7 +801,7 @@ function Janta() {
             <h1 className="text-xl font-black">Janta</h1>
           </div>
           <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-          
+
           {/* Progress Bar and Counter */}
           <div className="mt-4">
             <div className="flex items-center justify-between mb-2">
@@ -813,20 +813,20 @@ function Janta() {
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
                 style={{ width: `${getProgressPercentage()}%` }}
               ></div>
             </div>
           </div>
         </div>
-        
+
         <div className="p-4">
           <div className="grid grid-cols-3 gap-3">
             {foodPreferences.map((preference) => {
               const isSelected = selectedItems.includes(preference.value);
               const isDisabled = !isSelected && selectedItems.length >= maxItems;
-              
+
               return (
                 <button
                   key={preference.value}
@@ -834,9 +834,9 @@ function Janta() {
                   disabled={isDisabled}
                   className={`
                     text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected 
-                      ? 'border-green-500 bg-green-50 text-green-700' 
-                      : isDisabled 
+                    ${isSelected
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : isDisabled
                         ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
                     }
@@ -889,7 +889,7 @@ function TreinosEAtividades() {
           </div>
           <p className="text-md mt-2">Informe seu nível de atividade física</p>
         </div>
-        
+
         <div className="p-4 space-y-6">
           {/* Activity Level Section */}
           <div>
@@ -951,39 +951,42 @@ function DietaPersonalizada() {
           </div>
           <p className="text-md mt-2">Nutrição acessível para você</p>
         </div>
-        
+
         <div className="p-4">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-green-600 mb-2">
+            <h2 className="text-lg font-bold text-green-600 mb-2">
               Dieta personalizada por menos de R$ 10,00
             </h2>
-            <p className="text-gray-600">Por um preço acessível</p>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-6 border shadow p-4 rounded-lg">
+            <Badge className="bg-green-100 mb-2">
+              <span className="text-green-600 font-semibold">Aproveite seu desconto de 90%</span>
+            </Badge>
+
             <h3 className="text-lg font-semibold mb-3">Você receberá:</h3>
             <div className="space-y-3">
               <div className="flex items-center">
-                <div className="bg-green-500 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-white" />
+                <div className="bg-green-100 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-green-500" />
                 </div>
                 <span className="text-gray-700">Plano alimentar completo</span>
               </div>
               <div className="flex items-center">
-                <div className="bg-green-500 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-white" />
+                <div className="bg-green-100 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-green-500" />
                 </div>
                 <span className="text-gray-700">Treino Personalizado (opcional)</span>
               </div>
               <div className="flex items-center">
-                <div className="bg-green-500 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-white" />
+                <div className="bg-green-100 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-green-500" />
                 </div>
                 <span className="text-gray-700">Baseado nas suas preferências</span>
               </div>
               <div className="flex items-center">
-                <div className="bg-green-500 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-white" />
+                <div className="bg-green-100 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-green-500" />
                 </div>
                 <span className="text-gray-700">Quantidades de alimentos corretas</span>
               </div>
@@ -991,10 +994,17 @@ function DietaPersonalizada() {
           </div>
 
           <div className="text-center">
-            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg transition-colors duration-200 w-full mb-2">
+            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg transition-colors duration-200 w-full mb-2 text-xl font-bold">
               Montar minha dieta
+              <span>
+                <ArrowRight className="inline-block ml-2 w-6 h-6 -mt-1 text-white" />
+              </span>
             </button>
-            <p className="text-sm text-gray-500">Pagamento único e seguro</p>
+            <p className="text-sm text-gray-500 mt-4 mb-2">Pagamento único e seguro
+              <span>
+                <Lock className="inline-block ml-1 w-4 h-4 text-gray-500" />
+              </span>
+            </p>
           </div>
         </div>
       </div>
@@ -1006,6 +1016,7 @@ function App() {
   return (
     <main className="bg-[#F9FAFB]">
       <Header />
+      <div className="h-[70px]"></div>
       {/* Content Scroll */}
       <div className="py-8 px-4 space-y-8">
         <MedidasCorporais />
