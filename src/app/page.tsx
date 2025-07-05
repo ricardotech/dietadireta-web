@@ -295,17 +295,17 @@ function PreferenciasAlimentares() {
   const maxItems = 5;
 
   const foodPreferences = [
-    { value: "tapioca_frango", label: "🍗 Tapioca + Frango" },
-    { value: "crepioca_queijo", label: "🧀 Crepioca + Queijo" },
-    { value: "fruta", label: "🍎 Fruta" },
-    { value: "iogurte", label: "🥛 Iogurte" },
-    { value: "cafe", label: "☕ Café" },
-    { value: "pao_queijo", label: "🧀 Pão de Queijo" },
-    { value: "pao_ovo", label: "🥚 Pão + Ovo" },
-    { value: "cafe_leite", label: "☕ Café + Leite" },
-    { value: "cuscuz", label: "⚪ Cuscuz" },
-    { value: "pao_queijo_simples", label: "🍞 Pão + Queijo" },
-    { value: "pao_presunto", label: "🥪 Pão + Presunto" },
+    { value: "tapioca_frango", emoji: "🍗", label: "Tapioca + Frango" },
+    { value: "crepioca_queijo", emoji: "🧀", label: "Crepioca + Queijo" },
+    { value: "fruta", emoji: "🍎", label: "Fruta" },
+    { value: "iogurte", emoji: "🥛", label: "Iogurte" },
+    { value: "cafe", emoji: "☕", label: "Café" },
+    { value: "pao_queijo", emoji: "🧀", label: "Pão de Queijo" },
+    { value: "pao_ovo", emoji: "🥚", label: "Pão + Ovo" },
+    { value: "cafe_leite", emoji: "☕", label: "Café + Leite" },
+    { value: "cuscuz", emoji: "⚪", label: "Cuscuz" },
+    { value: "pao_queijo_simples", emoji: "🍞", label: "Pão + Queijo" },
+    { value: "pao_presunto", emoji: "🥪", label: "Pão + Presunto" },
   ];
 
   const handleItemToggle = (value: string) => {
@@ -384,6 +384,7 @@ function PreferenciasAlimentares() {
                     }
                   `}
                 >
+                  <p className="text-xl mb-1">{preference.emoji}</p>
                   <span className="font-medium text-center leading-tight">{preference.label}</span>
                   {isSelected && (
                     <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
@@ -400,6 +401,607 @@ function PreferenciasAlimentares() {
   );
 }
 
+function LancheDaManha() {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const maxItems = 5;
+
+  const foodPreferences = [
+    { value: "whey", emoji: "🥛", label: "Whey" },
+    { value: "biscoito", emoji: "🍪", label: "Biscoito" },
+    { value: "iogurte", emoji: "🥛", label: "Iogurte" },
+    { value: "suco", emoji: "🧃", label: "Suco" },
+    { value: "maca", emoji: "🍎", label: "Maçã" },
+    { value: "banana", emoji: "🍌", label: "Banana" },
+    { value: "laranja", emoji: "🍊", label: "Laranja" },
+    { value: "morango", emoji: "🍓", label: "Morango" },
+    { value: "uva", emoji: "🍇", label: "Uva" },
+    { value: "abacaxi", emoji: "🍍", label: "Abacaxi" },
+    { value: "pera", emoji: "🍐", label: "Pera" },
+  ];
+
+  const handleItemToggle = (value: string) => {
+    setSelectedItems(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(item => item !== value);
+      } else if (prev.length < maxItems) {
+        return [...prev, value];
+      }
+      return prev;
+    });
+  };
+
+  const getProgressPercentage = () => {
+    const count = selectedItems.length;
+    if (count === 0) return 0;
+    if (count <= 2) return count === 1 ? 33 : 66;
+    return 100;
+  };
+
+  const getProgressColor = () => {
+    const count = selectedItems.length;
+    if (count <= 2) return "bg-orange-500";
+    return "bg-green-500";
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
+      <div className="shadow rounded-t-xl">
+        <div className="border-b border-[#F0F0F0] p-4">
+          <div className="flex items-center">
+            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+              <ChartLine className="text-green-600 w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-black">Lanche da Manhã</h1>
+          </div>
+          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
+          
+          {/* Progress Bar and Counter */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                {selectedItems.length} de {maxItems} selecionados
+              </span>
+              <span className="text-sm text-gray-500">
+                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
+                style={{ width: `${getProgressPercentage()}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-3">
+            {foodPreferences.map((preference) => {
+              const isSelected = selectedItems.includes(preference.value);
+              const isDisabled = !isSelected && selectedItems.length >= maxItems;
+              
+              return (
+                <button
+                  key={preference.value}
+                  onClick={() => handleItemToggle(preference.value)}
+                  disabled={isDisabled}
+                  className={`
+                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
+                    ${isSelected 
+                      ? 'border-green-500 bg-green-50 text-green-700' 
+                      : isDisabled 
+                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
+                    }
+                  `}
+                >
+                  <p className="text-xl mb-1">{preference.emoji}</p>
+                  <span className="font-medium text-center leading-tight">{preference.label}</span>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Almoco() {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const maxItems = 5;
+
+  const foodPreferences = [
+    { value: "frango", emoji: "🍗", label: "Frango" },
+    { value: "patinho", emoji: "🥩", label: "Patinho" },
+    { value: "alcatra", emoji: "🥩", label: "Alcatra" },
+    { value: "carne_moida", emoji: "🥩", label: "Carne Moída" },
+    { value: "mandioca", emoji: "🍠", label: "Mandioca" },
+    { value: "carne_porco", emoji: "🐷", label: "Carne-Porco" },
+    { value: "batata_doce", emoji: "🍠", label: "Batata-Doce" },
+    { value: "tilapia", emoji: "🐟", label: "Tilápia" },
+    { value: "merluza", emoji: "🐟", label: "Merluza" },
+    { value: "legumes", emoji: "🥕", label: "Legumes" },
+    { value: "arroz", emoji: "🍚", label: "Arroz" },
+    { value: "feijao", emoji: "🫘", label: "Feijão" },
+    { value: "salada", emoji: "🥗", label: "Salada" },
+    { value: "macarrao", emoji: "🍝", label: "Macarrão" },
+    { value: "ovo", emoji: "🥚", label: "Ovo" },
+    { value: "inhame", emoji: "🍠", label: "Inhame" },
+    { value: "cuscuz", emoji: "🍚", label: "Cuscuz" },
+    { value: "batata", emoji: "🥔", label: "Batata" },
+  ];
+
+  const handleItemToggle = (value: string) => {
+    setSelectedItems(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(item => item !== value);
+      } else if (prev.length < maxItems) {
+        return [...prev, value];
+      }
+      return prev;
+    });
+  };
+
+  const getProgressPercentage = () => {
+    const count = selectedItems.length;
+    if (count === 0) return 0;
+    if (count <= 2) return count === 1 ? 33 : 66;
+    return 100;
+  };
+
+  const getProgressColor = () => {
+    const count = selectedItems.length;
+    if (count <= 2) return "bg-orange-500";
+    return "bg-green-500";
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
+      <div className="shadow rounded-t-xl">
+        <div className="border-b border-[#F0F0F0] p-4">
+          <div className="flex items-center">
+            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+              <ChartLine className="text-green-600 w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-black">Almoço</h1>
+          </div>
+          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
+          
+          {/* Progress Bar and Counter */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                {selectedItems.length} de {maxItems} selecionados
+              </span>
+              <span className="text-sm text-gray-500">
+                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
+                style={{ width: `${getProgressPercentage()}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-3">
+            {foodPreferences.map((preference) => {
+              const isSelected = selectedItems.includes(preference.value);
+              const isDisabled = !isSelected && selectedItems.length >= maxItems;
+              
+              return (
+                <button
+                  key={preference.value}
+                  onClick={() => handleItemToggle(preference.value)}
+                  disabled={isDisabled}
+                  className={`
+                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
+                    ${isSelected 
+                      ? 'border-green-500 bg-green-50 text-green-700' 
+                      : isDisabled 
+                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
+                    }
+                  `}
+                >
+                  <p className="text-xl mb-1">{preference.emoji}</p>
+                  <span className="font-medium text-center leading-tight">{preference.label}</span>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LancheDaTarde() {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const maxItems = 5;
+
+  const foodPreferences = [
+    { value: "whey", emoji: "🥛", label: "Whey" },
+    { value: "fruta", emoji: "🍌", label: "Fruta" },
+    { value: "cuscuz", emoji: "⚪", label: "Cuscuz" },
+    { value: "pao_ovo", emoji: "🥚", label: "Pão + Ovo" },
+    { value: "tapioca_frango", emoji: "🍗", label: "Tapioca + Frango" },
+    { value: "crepioca_queijo", emoji: "🧀", label: "Crepioca + Queijo" },
+    { value: "leite", emoji: "🥛", label: "Leite" },
+    { value: "rap10_frango", emoji: "🍗", label: "Rap10 + Frango" },
+    { value: "sanduiche_frango", emoji: "🥪", label: "Sanduíche Frango" },
+    { value: "sanduiche_peru", emoji: "🥪", label: "Sanduíche de Peru" },
+    { value: "suco", emoji: "🧃", label: "Suco" },
+  ];
+
+  const handleItemToggle = (value: string) => {
+    setSelectedItems(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(item => item !== value);
+      } else if (prev.length < maxItems) {
+        return [...prev, value];
+      }
+      return prev;
+    });
+  };
+
+  const getProgressPercentage = () => {
+    const count = selectedItems.length;
+    if (count === 0) return 0;
+    if (count <= 2) return count === 1 ? 33 : 66;
+    return 100;
+  };
+
+  const getProgressColor = () => {
+    const count = selectedItems.length;
+    if (count <= 2) return "bg-orange-500";
+    return "bg-green-500";
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
+      <div className="shadow rounded-t-xl">
+        <div className="border-b border-[#F0F0F0] p-4">
+          <div className="flex items-center">
+            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+              <ChartLine className="text-green-600 w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-black">Lanche da Tarde</h1>
+          </div>
+          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
+          
+          {/* Progress Bar and Counter */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                {selectedItems.length} de {maxItems} selecionados
+              </span>
+              <span className="text-sm text-gray-500">
+                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
+                style={{ width: `${getProgressPercentage()}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-3">
+            {foodPreferences.map((preference) => {
+              const isSelected = selectedItems.includes(preference.value);
+              const isDisabled = !isSelected && selectedItems.length >= maxItems;
+              
+              return (
+                <button
+                  key={preference.value}
+                  onClick={() => handleItemToggle(preference.value)}
+                  disabled={isDisabled}
+                  className={`
+                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
+                    ${isSelected 
+                      ? 'border-green-500 bg-green-50 text-green-700' 
+                      : isDisabled 
+                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
+                    }
+                  `}
+                >
+                  <p className="text-xl mb-1">{preference.emoji}</p>
+                  <span className="font-medium text-center leading-tight">{preference.label}</span>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Janta() {
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const maxItems = 5;
+
+  const foodPreferences = [
+    { value: "frango", emoji: "🍗", label: "Frango" },
+    { value: "patinho", emoji: "🥩", label: "Patinho" },
+    { value: "alcatra", emoji: "🥩", label: "Alcatra" },
+    { value: "carne_moida", emoji: "🥩", label: "Carne Moída" },
+    { value: "mandioca", emoji: "🍠", label: "Mandioca" },
+    { value: "carne_porco", emoji: "🐷", label: "Carne-Porco" },
+    { value: "batata_doce", emoji: "🍠", label: "Batata-Doce" },
+    { value: "tilapia", emoji: "🐟", label: "Tilápia" },
+    { value: "merluza", emoji: "🐟", label: "Merluza" },
+    { value: "legumes", emoji: "🥕", label: "Legumes" },
+    { value: "arroz", emoji: "🍚", label: "Arroz" },
+    { value: "feijao", emoji: "🫘", label: "Feijão" },
+    { value: "salada", emoji: "🥗", label: "Salada" },
+    { value: "macarrao", emoji: "🍝", label: "Macarrão" },
+    { value: "ovo", emoji: "🥚", label: "Ovo" },
+    { value: "inhame", emoji: "🍠", label: "Inhame" },
+    { value: "cuscuz", emoji: "🍚", label: "Cuscuz" },
+    { value: "batata", emoji: "🥔", label: "Batata" },
+  ];
+
+  const handleItemToggle = (value: string) => {
+    setSelectedItems(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(item => item !== value);
+      } else if (prev.length < maxItems) {
+        return [...prev, value];
+      }
+      return prev;
+    });
+  };
+
+  const getProgressPercentage = () => {
+    const count = selectedItems.length;
+    if (count === 0) return 0;
+    if (count <= 2) return count === 1 ? 33 : 66;
+    return 100;
+  };
+
+  const getProgressColor = () => {
+    const count = selectedItems.length;
+    if (count <= 2) return "bg-orange-500";
+    return "bg-green-500";
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
+      <div className="shadow rounded-t-xl">
+        <div className="border-b border-[#F0F0F0] p-4">
+          <div className="flex items-center">
+            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+              <ChartLine className="text-green-600 w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-black">Janta</h1>
+          </div>
+          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
+          
+          {/* Progress Bar and Counter */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                {selectedItems.length} de {maxItems} selecionados
+              </span>
+              <span className="text-sm text-gray-500">
+                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
+                style={{ width: `${getProgressPercentage()}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-3">
+            {foodPreferences.map((preference) => {
+              const isSelected = selectedItems.includes(preference.value);
+              const isDisabled = !isSelected && selectedItems.length >= maxItems;
+              
+              return (
+                <button
+                  key={preference.value}
+                  onClick={() => handleItemToggle(preference.value)}
+                  disabled={isDisabled}
+                  className={`
+                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
+                    ${isSelected 
+                      ? 'border-green-500 bg-green-50 text-green-700' 
+                      : isDisabled 
+                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
+                    }
+                  `}
+                >
+                  <p className="text-xl mb-1">{preference.emoji}</p>
+                  <span className="font-medium text-center leading-tight">{preference.label}</span>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TreinosEAtividades() {
+  const [selectedActivity, setSelectedActivity] = useState<string>('');
+  const [selectedWorkout, setSelectedWorkout] = useState<string>('');
+
+  const activityLevels = [
+    { value: "sedentario", label: "Sedentário (pouca ou nenhuma atividade física)" },
+    { value: "leve", label: "Leve (exercícios leves 1–3 dias por semana)" },
+    { value: "moderado", label: "Moderado (exercícios moderados 3–5 dias por semana)" },
+    { value: "intenso", label: "Intenso (exercícios intensos 6–7 dias por semana)" },
+    { value: "muito_intenso", label: "Muito intenso (exercícios intensos diários ou atleta)" },
+  ];
+
+  const workoutOptions = [
+    { value: "academia", label: "Sim, quero um plano de treino para Academia" },
+    { value: "casa", label: "Sim, quero um plano de treino para Casa" },
+    { value: "nao", label: "Não, apenas quero a dieta" },
+  ];
+
+  return (
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
+      <div className="shadow rounded-t-xl">
+        <div className="border-b border-[#F0F0F0] p-4">
+          <div className="flex items-center">
+            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+              <ChartLine className="text-green-600 w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-black">Treinos e Atividades</h1>
+          </div>
+          <p className="text-md mt-2">Informe seu nível de atividade física</p>
+        </div>
+        
+        <div className="p-4 space-y-6">
+          {/* Activity Level Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Como é sua rotina?</h3>
+            <p className="text-sm text-gray-600 mb-3">Quantidade de atividade realizada atualmente</p>
+            <Select
+              value={selectedActivity}
+              onValueChange={setSelectedActivity}
+            >
+              <SelectTrigger className="w-full text-xl py-8 px-4">
+                <SelectValue placeholder="Selecione seu nível de atividade" />
+              </SelectTrigger>
+              <SelectContent className="mt-1">
+                {activityLevels.map((level) => (
+                  <SelectItem key={level.value} value={level.value} className="text-xl py-4 px-6">
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Workout Plan Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Deseja treino?</h3>
+            <p className="text-sm text-gray-600 mb-3">Selecione uma opção</p>
+            <Select
+              value={selectedWorkout}
+              onValueChange={setSelectedWorkout}
+            >
+              <SelectTrigger className="w-full text-xl py-8 px-4">
+                <SelectValue placeholder="Selecione uma opção" />
+              </SelectTrigger>
+              <SelectContent className="mt-1">
+                {workoutOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value} className="text-xl py-4 px-6">
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DietaPersonalizada() {
+  return (
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
+      <div className="shadow rounded-t-xl">
+        <div className="border-b border-[#F0F0F0] p-4">
+          <div className="flex items-center">
+            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+              <ChartLine className="text-green-600 w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-black">Dieta Personalizada</h1>
+          </div>
+          <p className="text-md mt-2">Nutrição acessível para você</p>
+        </div>
+        
+        <div className="p-4">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-green-600 mb-2">
+              Dieta personalizada por menos de R$ 10,00
+            </h2>
+            <p className="text-gray-600">Por um preço acessível</p>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3">Você receberá:</h3>
+            <div className="space-y-3">
+              <div className="flex items-center">
+                <div className="bg-green-500 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-gray-700">Plano alimentar completo</span>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-green-500 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-gray-700">Treino Personalizado (opcional)</span>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-green-500 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-gray-700">Baseado nas suas preferências</span>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-green-500 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-gray-700">Quantidades de alimentos corretas</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg transition-colors duration-200 w-full mb-2">
+              Montar minha dieta
+            </button>
+            <p className="text-sm text-gray-500">Pagamento único e seguro</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <main className="bg-[#F9FAFB]">
@@ -408,6 +1010,12 @@ function App() {
       <div className="py-8 px-4 space-y-8">
         <MedidasCorporais />
         <PreferenciasAlimentares />
+        <LancheDaManha />
+        <Almoco />
+        <LancheDaTarde />
+        <Janta />
+        <TreinosEAtividades />
+        <DietaPersonalizada />
       </div>
     </main>
   );
