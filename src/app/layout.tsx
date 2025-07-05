@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "🥦 Dieta Box | O maior site de dietas do Brasil",
-  description: "O site de Dietas Nutri Inteligente foi considerado o maior e melhor site de dietas do Brasil, com mais de 5 milhões usuários ao todo.",
+  description: "O site de Dieta Box foi considerado o maior e melhor site de dietas do Brasil, com mais de 5 milhões receitas ao todo.",
 };
 
 export default function RootLayout({
