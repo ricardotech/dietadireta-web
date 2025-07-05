@@ -1,13 +1,102 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { ChartLine, LineChart, Menu, Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon } from "lucide-react";
+import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil } from "lucide-react";
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { FoodSelector } from "@/components/FoodSelector";
+import { PricingPage } from "@/components/PricingPage";
+import { Badge } from "@/components/ui/badge";
+
+// Form validation schema
+const formSchema = z.object({
+  weight: z.string().min(1, "Por favor, informe seu peso atual em quilogramas").refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    "Peso deve ser um número válido"
+  ),
+  height: z.string().min(1, "Por favor, informe sua altura em centímetros").refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    "Altura deve ser um número válido"
+  ),
+  age: z.string().min(1, "Por favor, informe sua idade em anos").refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    "Idade deve ser um número válido"
+  ),
+  objective: z.string().min(1, "Por favor, selecione qual é o seu objetivo principal"),
+  calories: z.string().min(1, "Por favor, selecione quantas calorias você deseja consumir por dia"),
+  schedule: z.string().min(1, "Por favor, selecione o horário que melhor se adapta à sua rotina"),
+  breakfastItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o café da manhã"),
+  morningSnackItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o lanche da manhã"),
+  lunchItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o almoço"),
+  afternoonSnackItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o lanche da tarde"),
+  dinnerItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o jantar"),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
+// Food data
+const foodData = {
+  breakfast: [
+    { value: "tapioca_frango", emoji: "🍗", label: "Tapioca + Frango" },
+    { value: "crepioca_queijo", emoji: "🧀", label: "Crepioca + Queijo" },
+    { value: "fruta", emoji: "🍎", label: "Fruta" },
+    { value: "iogurte", emoji: "🥛", label: "Iogurte" },
+    { value: "cafe", emoji: "☕", label: "Café" },
+    { value: "pao_queijo", emoji: "🧀", label: "Pão de Queijo" },
+    { value: "pao_ovo", emoji: "🥚", label: "Pão + Ovo" },
+    { value: "cafe_leite", emoji: "☕", label: "Café + Leite" },
+    { value: "cuscuz", emoji: "⚪", label: "Cuscuz" },
+  ],
+  morningSnack: [
+    { value: "whey", emoji: "🥛", label: "Whey" },
+    { value: "biscoito", emoji: "🍪", label: "Biscoito" },
+    { value: "maca", emoji: "🍎", label: "Maçã" },
+    { value: "banana", emoji: "🍌", label: "Banana" },
+    { value: "laranja", emoji: "🍊", label: "Laranja" },
+    { value: "morango", emoji: "🍓", label: "Morango" },
+    { value: "uva", emoji: "🍇", label: "Uva" },
+    { value: "abacaxi", emoji: "🍍", label: "Abacaxi" },
+    { value: "pera", emoji: "🍐", label: "Pera" },
+  ],
+  lunch: [
+    { value: "frango", emoji: "🍗", label: "Frango" },
+    { value: "patinho", emoji: "🥩", label: "Patinho" },
+    { value: "alcatra", emoji: "🥩", label: "Alcatra" },
+    { value: "carne_moida", emoji: "🥩", label: "Carne Moída" },
+    { value: "mandioca", emoji: "🍠", label: "Mandioca" },
+    { value: "batata_doce", emoji: "🍠", label: "Batata-Doce" },
+    { value: "tilapia", emoji: "🐟", label: "Tilápia" },
+    { value: "arroz", emoji: "🍚", label: "Arroz" },
+    { value: "feijao", emoji: "🫘", label: "Feijão" },
+  ],
+  afternoonSnack: [
+    { value: "vitamina", emoji: "🥤", label: "Vitamina" },
+    { value: "sanduiche", emoji: "🥪", label: "Sanduíche" },
+    { value: "bolo", emoji: "🍰", label: "Bolo" },
+    { value: "pipoca", emoji: "🍿", label: "Pipoca" },
+    { value: "iogurte_snack", emoji: "🥛", label: "Iogurte" },
+    { value: "fruta_snack", emoji: "🍊", label: "Fruta" },
+    { value: "castanha", emoji: "🥜", label: "Castanha" },
+    { value: "aveia", emoji: "🥣", label: "Aveia" },
+    { value: "granola", emoji: "🥣", label: "Granola" },
+  ],
+  dinner: [
+    { value: "sopa", emoji: "🍲", label: "Sopa" },
+    { value: "salada", emoji: "🥗", label: "Salada" },
+    { value: "omelete", emoji: "🍳", label: "Omelete" },
+    { value: "peixe", emoji: "🐟", label: "Peixe" },
+    { value: "frango_janta", emoji: "🍗", label: "Frango" },
+    { value: "legumes_janta", emoji: "🥕", label: "Legumes" },
+    { value: "quinoa", emoji: "🌾", label: "Quinoa" },
+    { value: "batata", emoji: "🥔", label: "Batata" },
+    { value: "verduras", emoji: "🥬", label: "Verduras" },
+  ],
+};
 
 function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -85,7 +174,6 @@ function Header() {
                           }`}
                         onClick={() => setIsOpen(false)}
                       >
-                        {/* Green accent line for active/hover */}
                         <div className={`absolute left-0 top-0 bottom-0 w-1 bg-green-500 transition-opacity ${index === 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                           }`} />
                         <item.icon className="w-5 h-5 mr-4 text-gray-600" />
@@ -133,49 +221,13 @@ function Header() {
   )
 }
 
-function MedidasCorporais() {
-
-  const [value, setValue] = useState<string | null>(null);
-
+function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
   const objectives = [
     { value: "emagrecer", label: "Emagrecer" },
     { value: "emagrecer_massa", label: "Emagrecer + Massa" },
     { value: "definicao_ganho", label: "Definicao Muscular + Ganhar Massa" },
     { value: "ganhar_massa", label: "Ganhar Massa Muscular" },
   ];
-
-  function ObjectiveSelect({
-    defaultValue,
-    onChange,
-  }: {
-    defaultValue?: string;
-    onChange?: (value: string) => void;
-  }) {
-    const [value, setValue] = useState(defaultValue ?? "");
-
-    return (
-      <Select
-        value={value}
-        onValueChange={(v) => {
-          setValue(v);
-          onChange?.(v);
-        }}
-
-      >
-        <SelectTrigger className="w-full text-xl py-8 px-4">
-          <SelectValue placeholder="Objetivo" />
-        </SelectTrigger>
-
-        <SelectContent className="my-1">
-          {objectives.map((o) => (
-            <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  }
 
   const calories = [
     { value: "0", label: "Não sei dizer" },
@@ -188,39 +240,6 @@ function MedidasCorporais() {
     { value: "3000", label: "3000 kcal" },
   ];
 
-  function CaloriesSelect({
-    defaultValue,
-    onChange,
-  }: {
-    defaultValue?: string;
-    onChange?: (value: string) => void;
-  }) {
-    const [value, setValue] = useState(defaultValue ?? "");
-
-    return (
-      <Select
-        value={value}
-        onValueChange={(v) => {
-          setValue(v);
-          onChange?.(v);
-        }}
-
-      >
-        <SelectTrigger className="w-full text-xl py-8 px-4">
-          <SelectValue placeholder="Calorias diárias 🔥" />
-        </SelectTrigger>
-
-        <SelectContent className="my-1">
-          {calories.map((o) => (
-            <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  }
-
   const schedules = [
     { value: "custom", label: "Tenho meu próprio horário" },
     { value: "05:30-08:30-12:00-15:00-19:00", label: "05:30, 08:30, 12:00, 15:00, 19:00" },
@@ -232,42 +251,9 @@ function MedidasCorporais() {
     { value: "09:00-11:00-13:00-16:00-21:00", label: "09:00, 11:00, 13:00, 16:00, 21:00" },
   ];
 
-  function MealScheduleSelect({
-    defaultValue,
-    onChange,
-  }: {
-    defaultValue?: string;
-    onChange?: (value: string) => void;
-  }) {
-    const [value, setValue] = useState(defaultValue ?? "");
-
-    return (
-      <Select
-        value={value}
-        onValueChange={(v) => {
-          setValue(v);
-          onChange?.(v);
-        }}
-      >
-        <SelectTrigger className="w-full text-xl py-8 px-4">
-          <SelectValue placeholder="Horários para Refeição ⏱️" />
-        </SelectTrigger>
-
-        <SelectContent className="my-1">
-          {schedules.map((s) => (
-            <SelectItem key={s.value} value={s.value} className="text-xl py-4 px-6">
-              {s.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    );
-  }
-
-
   return (
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
+      <div className="shadow rounded-xl">
         <div className="border-b border-[#F0F0F0] p-4">
           <div className="flex items-center">
             <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
@@ -278,734 +264,202 @@ function MedidasCorporais() {
           <p className="text-md mt-2">Preencha para calcular sua dieta personalizada</p>
         </div>
         <div className="p-4 space-y-4">
-          <Input placeholder="Peso (kg)" className="py-8 px-4 text-xl" />
-          <Input placeholder="Altura (cm)" className="py-8 px-4 text-xl" />
-          <Input placeholder="Idade" className="py-8 px-4 text-xl" />
-          <ObjectiveSelect />
-          <CaloriesSelect />
-          <MealScheduleSelect />
+          <div>
+            <Controller
+              name="weight"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="Peso (kg)"
+                  className={`py-8 px-4 text-xl ${errors.weight ? 'border-red-500 focus:border-red-500' : ''}`}
+                />
+              )}
+            />
+            {errors.weight && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.weight.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller
+              name="height"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="Altura (cm)"
+                  className={`py-8 px-4 text-xl ${errors.height ? 'border-red-500 focus:border-red-500' : ''}`}
+                />
+              )}
+            />
+            {errors.height && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.height.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller
+              name="age"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="Idade"
+                  className={`py-8 px-4 text-xl ${errors.age ? 'border-red-500 focus:border-red-500' : ''}`}
+                />
+              )}
+            />
+            {errors.age && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.age.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller
+              name="objective"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.objective ? 'border-red-500 focus:border-red-500' : ''}`}>
+                    <SelectValue placeholder="Objetivo" />
+                  </SelectTrigger>
+                  <SelectContent className="my-1">
+                    {objectives.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.objective && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.objective.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller
+              name="calories"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.calories ? 'border-red-500 focus:border-red-500' : ''}`}>
+                    <SelectValue placeholder="Calorias diárias 🔥" />
+                  </SelectTrigger>
+                  <SelectContent className="my-1">
+                    {calories.map((o) => (
+                      <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.calories && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.calories.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller
+              name="schedule"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.schedule ? 'border-red-500 focus:border-red-500' : ''}`}>
+                    <SelectValue placeholder="Horários para Refeição ⏱️" />
+                  </SelectTrigger>
+                  <SelectContent className="my-1">
+                    {schedules.map((s) => (
+                      <SelectItem key={s.value} value={s.value} className="text-xl py-4 px-6">
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.schedule && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.schedule.message}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-function PreferenciasAlimentares() {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const maxItems = 5;
-
-  const foodPreferences = [
-    { value: "tapioca_frango", emoji: "🍗", label: "Tapioca + Frango" },
-    { value: "crepioca_queijo", emoji: "🧀", label: "Crepioca + Queijo" },
-    { value: "fruta", emoji: "🍎", label: "Fruta" },
-    { value: "iogurte", emoji: "🥛", label: "Iogurte" },
-    { value: "cafe", emoji: "☕", label: "Café" },
-    { value: "pao_queijo", emoji: "🧀", label: "Pão de Queijo" },
-    { value: "pao_ovo", emoji: "🥚", label: "Pão + Ovo" },
-    { value: "cafe_leite", emoji: "☕", label: "Café + Leite" },
-    { value: "cuscuz", emoji: "⚪", label: "Cuscuz" },
-    { value: "pao_queijo_simples", emoji: "🍞", label: "Pão + Queijo" },
-    { value: "pao_presunto", emoji: "🥪", label: "Pão + Presunto" },
-  ];
-
-  const handleItemToggle = (value: string) => {
-    setSelectedItems(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else if (prev.length < maxItems) {
-        return [...prev, value];
-      }
-      return prev;
-    });
-  };
-
-  const getProgressPercentage = () => {
-    const count = selectedItems.length;
-    if (count === 0) return 0;
-    if (count <= 2) return count === 1 ? 33 : 66;
-    return 100;
-  };
-
-  const getProgressColor = () => {
-    const count = selectedItems.length;
-    if (count <= 2) return "bg-orange-500";
-    return "bg-green-500";
-  };
-
+function DietaPersonalizada({ onSubmit, isSubmitting }: { onSubmit: () => void, isSubmitting: boolean }) {
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
-        <div className="border-b border-[#F0F0F0] p-4">
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
+      <div className="p-8">
+        <div className="flex items-center">
+          <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+            <Pencil className="text-green-600 w-5 h-5" />
+          </div>
+          <h1 className="text-xl font-black">Dieta personalizada</h1>
+        </div>
+        <p className="text-md mt-2 mb-4">Sua dieta será montada com base nas suas preferências alimentares e necessidades nutricionais.</p>
+        <Badge className="bg-green-100 text-green-600 mb-4">
+          <CheckCircle className="inline-block w-4 h-4 mr-1" />
+          Por um preço acessível de R$10
+        </Badge>
+
+        <div className="space-y-4 mb-8">
           <div className="flex items-center">
-            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-              <ChartLine className="text-green-600 w-5 h-5" />
+            <div className="bg-green-100 rounded-full p-1 mr-3">
+              <Check className="w-4 h-4 text-green-500" />
             </div>
-            <h1 className="text-xl font-black">Café da manhã</h1>
+            <span className="text-gray-700">Dieta totalmente personalizada</span>
           </div>
-          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-
-          {/* Progress Bar and Counter */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                {selectedItems.length} de {maxItems} selecionados
-              </span>
-              <span className="text-sm text-gray-500">
-                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
-                style={{ width: `${getProgressPercentage()}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <div className="grid grid-cols-3 gap-3">
-            {foodPreferences.map((preference) => {
-              const isSelected = selectedItems.includes(preference.value);
-              const isDisabled = !isSelected && selectedItems.length >= maxItems;
-
-              return (
-                <button
-                  key={preference.value}
-                  onClick={() => handleItemToggle(preference.value)}
-                  disabled={isDisabled}
-                  className={`
-                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : isDisabled
-                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                    }
-                  `}
-                >
-                  <p className="text-xl mb-1">{preference.emoji}</p>
-                  <span className="font-medium text-center leading-tight">{preference.label}</span>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LancheDaManha() {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const maxItems = 5;
-
-  const foodPreferences = [
-    { value: "whey", emoji: "🥛", label: "Whey" },
-    { value: "biscoito", emoji: "🍪", label: "Biscoito" },
-    { value: "iogurte", emoji: "🥛", label: "Iogurte" },
-    { value: "suco", emoji: "🧃", label: "Suco" },
-    { value: "maca", emoji: "🍎", label: "Maçã" },
-    { value: "banana", emoji: "🍌", label: "Banana" },
-    { value: "laranja", emoji: "🍊", label: "Laranja" },
-    { value: "morango", emoji: "🍓", label: "Morango" },
-    { value: "uva", emoji: "🍇", label: "Uva" },
-    { value: "abacaxi", emoji: "🍍", label: "Abacaxi" },
-    { value: "pera", emoji: "🍐", label: "Pera" },
-  ];
-
-  const handleItemToggle = (value: string) => {
-    setSelectedItems(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else if (prev.length < maxItems) {
-        return [...prev, value];
-      }
-      return prev;
-    });
-  };
-
-  const getProgressPercentage = () => {
-    const count = selectedItems.length;
-    if (count === 0) return 0;
-    if (count <= 2) return count === 1 ? 33 : 66;
-    return 100;
-  };
-
-  const getProgressColor = () => {
-    const count = selectedItems.length;
-    if (count <= 2) return "bg-orange-500";
-    return "bg-green-500";
-  };
-
-  return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
-        <div className="border-b border-[#F0F0F0] p-4">
           <div className="flex items-center">
-            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-              <ChartLine className="text-green-600 w-5 h-5" />
+            <div className="bg-green-100 rounded-full p-1 mr-3">
+              <Check className="w-4 h-4 text-green-500" />
             </div>
-            <h1 className="text-xl font-black">Lanche da Manhã</h1>
+            <span className="text-gray-700">Baseado nas suas preferências</span>
           </div>
-          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-
-          {/* Progress Bar and Counter */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                {selectedItems.length} de {maxItems} selecionados
-              </span>
-              <span className="text-sm text-gray-500">
-                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
-                style={{ width: `${getProgressPercentage()}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <div className="grid grid-cols-3 gap-3">
-            {foodPreferences.map((preference) => {
-              const isSelected = selectedItems.includes(preference.value);
-              const isDisabled = !isSelected && selectedItems.length >= maxItems;
-
-              return (
-                <button
-                  key={preference.value}
-                  onClick={() => handleItemToggle(preference.value)}
-                  disabled={isDisabled}
-                  className={`
-                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : isDisabled
-                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                    }
-                  `}
-                >
-                  <p className="text-xl mb-1">{preference.emoji}</p>
-                  <span className="font-medium text-center leading-tight">{preference.label}</span>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Almoco() {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const maxItems = 5;
-
-  const foodPreferences = [
-    { value: "frango", emoji: "🍗", label: "Frango" },
-    { value: "patinho", emoji: "🥩", label: "Patinho" },
-    { value: "alcatra", emoji: "🥩", label: "Alcatra" },
-    { value: "carne_moida", emoji: "🥩", label: "Carne Moída" },
-    { value: "mandioca", emoji: "🍠", label: "Mandioca" },
-    { value: "carne_porco", emoji: "🐷", label: "Carne-Porco" },
-    { value: "batata_doce", emoji: "🍠", label: "Batata-Doce" },
-    { value: "tilapia", emoji: "🐟", label: "Tilápia" },
-    { value: "merluza", emoji: "🐟", label: "Merluza" },
-    { value: "legumes", emoji: "🥕", label: "Legumes" },
-    { value: "arroz", emoji: "🍚", label: "Arroz" },
-    { value: "feijao", emoji: "🫘", label: "Feijão" },
-    { value: "salada", emoji: "🥗", label: "Salada" },
-    { value: "macarrao", emoji: "🍝", label: "Macarrão" },
-    { value: "ovo", emoji: "🥚", label: "Ovo" },
-    { value: "inhame", emoji: "🍠", label: "Inhame" },
-    { value: "cuscuz", emoji: "🍚", label: "Cuscuz" },
-    { value: "batata", emoji: "🥔", label: "Batata" },
-  ];
-
-  const handleItemToggle = (value: string) => {
-    setSelectedItems(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else if (prev.length < maxItems) {
-        return [...prev, value];
-      }
-      return prev;
-    });
-  };
-
-  const getProgressPercentage = () => {
-    const count = selectedItems.length;
-    if (count === 0) return 0;
-    if (count <= 2) return count === 1 ? 33 : 66;
-    return 100;
-  };
-
-  const getProgressColor = () => {
-    const count = selectedItems.length;
-    if (count <= 2) return "bg-orange-500";
-    return "bg-green-500";
-  };
-
-  return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
-        <div className="border-b border-[#F0F0F0] p-4">
           <div className="flex items-center">
-            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-              <ChartLine className="text-green-600 w-5 h-5" />
+            <div className="bg-green-100 rounded-full p-1 mr-3">
+              <Check className="w-4 h-4 text-green-500" />
             </div>
-            <h1 className="text-xl font-black">Almoço</h1>
-          </div>
-          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-
-          {/* Progress Bar and Counter */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                {selectedItems.length} de {maxItems} selecionados
-              </span>
-              <span className="text-sm text-gray-500">
-                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
-                style={{ width: `${getProgressPercentage()}%` }}
-              ></div>
-            </div>
+            <span className="text-gray-700">Quantidades de alimentos corretas</span>
           </div>
         </div>
 
-        <div className="p-4">
-          <div className="grid grid-cols-3 gap-3">
-            {foodPreferences.map((preference) => {
-              const isSelected = selectedItems.includes(preference.value);
-              const isDisabled = !isSelected && selectedItems.length >= maxItems;
-
-              return (
-                <button
-                  key={preference.value}
-                  onClick={() => handleItemToggle(preference.value)}
-                  disabled={isDisabled}
-                  className={`
-                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : isDisabled
-                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                    }
-                  `}
-                >
-                  <p className="text-xl mb-1">{preference.emoji}</p>
-                  <span className="font-medium text-center leading-tight">{preference.label}</span>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LancheDaTarde() {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const maxItems = 5;
-
-  const foodPreferences = [
-    { value: "whey", emoji: "🥛", label: "Whey" },
-    { value: "fruta", emoji: "🍌", label: "Fruta" },
-    { value: "cuscuz", emoji: "⚪", label: "Cuscuz" },
-    { value: "pao_ovo", emoji: "🥚", label: "Pão + Ovo" },
-    { value: "tapioca_frango", emoji: "🍗", label: "Tapioca + Frango" },
-    { value: "crepioca_queijo", emoji: "🧀", label: "Crepioca + Queijo" },
-    { value: "leite", emoji: "🥛", label: "Leite" },
-    { value: "rap10_frango", emoji: "🍗", label: "Rap10 + Frango" },
-    { value: "sanduiche_frango", emoji: "🥪", label: "Sanduíche Frango" },
-    { value: "sanduiche_peru", emoji: "🥪", label: "Sanduíche de Peru" },
-    { value: "suco", emoji: "🧃", label: "Suco" },
-  ];
-
-  const handleItemToggle = (value: string) => {
-    setSelectedItems(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else if (prev.length < maxItems) {
-        return [...prev, value];
-      }
-      return prev;
-    });
-  };
-
-  const getProgressPercentage = () => {
-    const count = selectedItems.length;
-    if (count === 0) return 0;
-    if (count <= 2) return count === 1 ? 33 : 66;
-    return 100;
-  };
-
-  const getProgressColor = () => {
-    const count = selectedItems.length;
-    if (count <= 2) return "bg-orange-500";
-    return "bg-green-500";
-  };
-
-  return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
-        <div className="border-b border-[#F0F0F0] p-4">
-          <div className="flex items-center">
-            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-              <ChartLine className="text-green-600 w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-black">Lanche da Tarde</h1>
-          </div>
-          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-
-          {/* Progress Bar and Counter */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                {selectedItems.length} de {maxItems} selecionados
-              </span>
-              <span className="text-sm text-gray-500">
-                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
-                style={{ width: `${getProgressPercentage()}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <div className="grid grid-cols-3 gap-3">
-            {foodPreferences.map((preference) => {
-              const isSelected = selectedItems.includes(preference.value);
-              const isDisabled = !isSelected && selectedItems.length >= maxItems;
-
-              return (
-                <button
-                  key={preference.value}
-                  onClick={() => handleItemToggle(preference.value)}
-                  disabled={isDisabled}
-                  className={`
-                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : isDisabled
-                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                    }
-                  `}
-                >
-                  <p className="text-xl mb-1">{preference.emoji}</p>
-                  <span className="font-medium text-center leading-tight">{preference.label}</span>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Janta() {
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const maxItems = 5;
-
-  const foodPreferences = [
-    { value: "frango", emoji: "🍗", label: "Frango" },
-    { value: "patinho", emoji: "🥩", label: "Patinho" },
-    { value: "alcatra", emoji: "🥩", label: "Alcatra" },
-    { value: "carne_moida", emoji: "🥩", label: "Carne Moída" },
-    { value: "mandioca", emoji: "🍠", label: "Mandioca" },
-    { value: "carne_porco", emoji: "🐷", label: "Carne-Porco" },
-    { value: "batata_doce", emoji: "🍠", label: "Batata-Doce" },
-    { value: "tilapia", emoji: "🐟", label: "Tilápia" },
-    { value: "merluza", emoji: "🐟", label: "Merluza" },
-    { value: "legumes", emoji: "🥕", label: "Legumes" },
-    { value: "arroz", emoji: "🍚", label: "Arroz" },
-    { value: "feijao", emoji: "🫘", label: "Feijão" },
-    { value: "salada", emoji: "🥗", label: "Salada" },
-    { value: "macarrao", emoji: "🍝", label: "Macarrão" },
-    { value: "ovo", emoji: "🥚", label: "Ovo" },
-    { value: "inhame", emoji: "🍠", label: "Inhame" },
-    { value: "cuscuz", emoji: "🍚", label: "Cuscuz" },
-    { value: "batata", emoji: "🥔", label: "Batata" },
-  ];
-
-  const handleItemToggle = (value: string) => {
-    setSelectedItems(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else if (prev.length < maxItems) {
-        return [...prev, value];
-      }
-      return prev;
-    });
-  };
-
-  const getProgressPercentage = () => {
-    const count = selectedItems.length;
-    if (count === 0) return 0;
-    if (count <= 2) return count === 1 ? 33 : 66;
-    return 100;
-  };
-
-  const getProgressColor = () => {
-    const count = selectedItems.length;
-    if (count <= 2) return "bg-orange-500";
-    return "bg-green-500";
-  };
-
-  return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
-        <div className="border-b border-[#F0F0F0] p-4">
-          <div className="flex items-center">
-            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-              <ChartLine className="text-green-600 w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-black">Janta</h1>
-          </div>
-          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
-
-          {/* Progress Bar and Counter */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                {selectedItems.length} de {maxItems} selecionados
-              </span>
-              <span className="text-sm text-gray-500">
-                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
-                style={{ width: `${getProgressPercentage()}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4">
-          <div className="grid grid-cols-3 gap-3">
-            {foodPreferences.map((preference) => {
-              const isSelected = selectedItems.includes(preference.value);
-              const isDisabled = !isSelected && selectedItems.length >= maxItems;
-
-              return (
-                <button
-                  key={preference.value}
-                  onClick={() => handleItemToggle(preference.value)}
-                  disabled={isDisabled}
-                  className={`
-                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                    ${isSelected
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : isDisabled
-                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                    }
-                  `}
-                >
-                  <p className="text-xl mb-1">{preference.emoji}</p>
-                  <span className="font-medium text-center leading-tight">{preference.label}</span>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
-                      <Check className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TreinosEAtividades() {
-  const [selectedActivity, setSelectedActivity] = useState<string>('');
-  const [selectedWorkout, setSelectedWorkout] = useState<string>('');
-
-  const activityLevels = [
-    { value: "sedentario", label: "Sedentário (pouca ou nenhuma atividade física)" },
-    { value: "leve", label: "Leve (exercícios leves 1–3 dias por semana)" },
-    { value: "moderado", label: "Moderado (exercícios moderados 3–5 dias por semana)" },
-    { value: "intenso", label: "Intenso (exercícios intensos 6–7 dias por semana)" },
-    { value: "muito_intenso", label: "Muito intenso (exercícios intensos diários ou atleta)" },
-  ];
-
-  const workoutOptions = [
-    { value: "academia", label: "Sim, quero um plano de treino para Academia" },
-    { value: "casa", label: "Sim, quero um plano de treino para Casa" },
-    { value: "nao", label: "Não, apenas quero a dieta" },
-  ];
-
-  return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
-        <div className="border-b border-[#F0F0F0] p-4">
-          <div className="flex items-center">
-            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-              <ChartLine className="text-green-600 w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-black">Treinos e Atividades</h1>
-          </div>
-          <p className="text-md mt-2">Informe seu nível de atividade física</p>
-        </div>
-
-        <div className="p-4 space-y-6">
-          {/* Activity Level Section */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Como é sua rotina?</h3>
-            <p className="text-sm text-gray-600 mb-3">Quantidade de atividade realizada atualmente</p>
-            <Select
-              value={selectedActivity}
-              onValueChange={setSelectedActivity}
-            >
-              <SelectTrigger className="w-full text-xl py-8 px-4">
-                <SelectValue placeholder="Selecione seu nível de atividade" />
-              </SelectTrigger>
-              <SelectContent className="mt-1">
-                {activityLevels.map((level) => (
-                  <SelectItem key={level.value} value={level.value} className="text-xl py-4 px-6">
-                    {level.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Workout Plan Section */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Deseja treino?</h3>
-            <p className="text-sm text-gray-600 mb-3">Selecione uma opção</p>
-            <Select
-              value={selectedWorkout}
-              onValueChange={setSelectedWorkout}
-            >
-              <SelectTrigger className="w-full text-xl py-8 px-4">
-                <SelectValue placeholder="Selecione uma opção" />
-              </SelectTrigger>
-              <SelectContent className="mt-1">
-                {workoutOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="text-xl py-4 px-6">
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function DietaPersonalizada() {
-  return (
-    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
-      <div className="shadow rounded-t-xl">
-        <div className="border-b border-[#F0F0F0] p-4">
-          <div className="flex items-center">
-            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-              <ChartLine className="text-green-600 w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-black">Dieta Personalizada</h1>
-          </div>
-          <p className="text-md mt-2">Nutrição acessível para você</p>
-        </div>
-
-        <div className="p-4">
-          <div className="text-center mb-6">
-            <h2 className="text-lg font-bold text-green-600 mb-2">
-              Dieta personalizada por menos de R$ 10,00
-            </h2>
-          </div>
-
-          <div className="mb-6 border shadow p-4 rounded-lg">
-            <Badge className="bg-green-100 mb-2">
-              <span className="text-green-600 font-semibold">Aproveite seu desconto de 90%</span>
-            </Badge>
-
-            <h3 className="text-lg font-semibold mb-3">Você receberá:</h3>
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <div className="bg-green-100 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-green-500" />
-                </div>
-                <span className="text-gray-700">Plano alimentar completo</span>
-              </div>
-              <div className="flex items-center">
-                <div className="bg-green-100 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-green-500" />
-                </div>
-                <span className="text-gray-700">Treino Personalizado (opcional)</span>
-              </div>
-              <div className="flex items-center">
-                <div className="bg-green-100 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-green-500" />
-                </div>
-                <span className="text-gray-700">Baseado nas suas preferências</span>
-              </div>
-              <div className="flex items-center">
-                <div className="bg-green-100 rounded-full p-1 mr-3">
-                  <Check className="w-4 h-4 text-green-500" />
-                </div>
-                <span className="text-gray-700">Quantidades de alimentos corretas</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg transition-colors duration-200 w-full mb-2 text-xl font-bold">
-              Montar minha dieta
-              <span>
-                <ArrowRight className="inline-block ml-2 w-6 h-6 -mt-1 text-white" />
-              </span>
-            </button>
-            <p className="text-sm text-gray-500 mt-4 mb-2">Pagamento único e seguro
-              <span>
-                <Lock className="inline-block ml-1 w-4 h-4 text-gray-500" />
-              </span>
-            </p>
-          </div>
+        <div className="text-center">
+          <Button
+            onClick={onSubmit}
+            disabled={isSubmitting}
+            className="bg-green-500 hover:bg-green-600 text-white font-bold py-7 px-8 rounded-lg transition-colors duration-200 w-full mb-2 text-xl"
+          >
+            {isSubmitting ? "Processando..." : "Montar minha dieta"}
+            <ArrowRight className="inline-block w-12 h-12 text-white" />
+          </Button>
+          <p className="text-sm text-gray-500 mt-4 mb-2">
+            Pagamento único e seguro
+            <Lock className="inline-block ml-1 w-4 h-4 text-gray-500" />
+          </p>
         </div>
       </div>
     </div>
@@ -1013,25 +467,122 @@ function DietaPersonalizada() {
 }
 
 function App() {
+  const [showPricing, setShowPricing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors }
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    mode: 'onChange',
+    defaultValues: {
+      weight: '',
+      height: '',
+      age: '',
+      objective: '',
+      calories: '',
+      schedule: '',
+      breakfastItems: [],
+      morningSnackItems: [],
+      lunchItems: [],
+      afternoonSnackItems: [],
+      dinnerItems: [],
+    }
+  });
+
+  const onSubmit = async (data: FormData) => {
+    setIsSubmitting(true);
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIsSubmitting(false);
+    setShowPricing(true);
+  };
+
+  const handlePurchase = (planType: string) => {
+    console.log("Purchase plan:", planType);
+    // Implement purchase logic here
+  };
+
+  if (showPricing) {
+    return (
+      <PricingPage
+        onBack={() => setShowPricing(false)}
+        onPurchase={handlePurchase}
+      />
+    );
+  }
+
   return (
     <main className="bg-[#F9FAFB]">
       <Header />
       <div className="h-[70px]"></div>
-      {/* Content Scroll */}
-      <div className="py-8 px-4 space-y-8">
-        <MedidasCorporais />
-        <PreferenciasAlimentares />
-        <LancheDaManha />
-        <Almoco />
-        <LancheDaTarde />
-        <Janta />
-        <TreinosEAtividades />
-        <DietaPersonalizada />
-      </div>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="py-8 px-4 space-y-8">
+          <MedidasCorporais control={control} errors={errors} />
+
+          <FoodSelector
+            title="Café da manhã"
+            description="Selecione os alimentos que você costuma consumir"
+            fieldName="breakfastItems"
+            foods={foodData.breakfast}
+            selectedItems={watch("breakfastItems") || []}
+            onChange={(items) => setValue("breakfastItems", items)}
+            error={errors.breakfastItems?.message}
+          />
+
+          <FoodSelector
+            title="Lanche da manhã"
+            description="Selecione os alimentos que você costuma consumir"
+            fieldName="morningSnackItems"
+            foods={foodData.morningSnack}
+            selectedItems={watch("morningSnackItems") || []}
+            onChange={(items) => setValue("morningSnackItems", items)}
+            error={errors.morningSnackItems?.message}
+          />
+
+          <FoodSelector
+            title="Almoço"
+            description="Selecione os alimentos que você costuma consumir"
+            fieldName="lunchItems"
+            foods={foodData.lunch}
+            selectedItems={watch("lunchItems") || []}
+            onChange={(items) => setValue("lunchItems", items)}
+            error={errors.lunchItems?.message}
+          />
+
+          <FoodSelector
+            title="Lanche da tarde"
+            description="Selecione os alimentos que você costuma consumir"
+            fieldName="afternoonSnackItems"
+            foods={foodData.afternoonSnack}
+            selectedItems={watch("afternoonSnackItems") || []}
+            onChange={(items) => setValue("afternoonSnackItems", items)}
+            error={errors.afternoonSnackItems?.message}
+          />
+
+          <FoodSelector
+            title="Jantar"
+            description="Selecione os alimentos que você costuma consumir"
+            fieldName="dinnerItems"
+            foods={foodData.dinner}
+            selectedItems={watch("dinnerItems") || []}
+            onChange={(items) => setValue("dinnerItems", items)}
+            error={errors.dinnerItems?.message}
+          />
+
+          <DietaPersonalizada
+            onSubmit={handleSubmit(onSubmit)}
+            isSubmitting={isSubmitting}
+          />
+        </div>
+      </form>
     </main>
   );
 }
-
-
 
 export default App;

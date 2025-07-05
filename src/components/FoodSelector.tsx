@@ -1,0 +1,131 @@
+import { AlertCircle, Check, ChartLine, CheckCircle } from "lucide-react";
+
+interface FoodSelectorProps {
+  title: string;
+  description: string;
+  fieldName: string;
+  foods: Array<{ value: string; emoji: string; label: string }>;
+  selectedItems: string[];
+  onChange: (items: string[]) => void;
+  error?: string;
+  maxItems?: number;
+}
+
+export function FoodSelector({
+  title,
+  description,
+  fieldName,
+  foods,
+  selectedItems,
+  onChange,
+  error,
+  maxItems = 5,
+}: FoodSelectorProps) {
+  const handleItemToggle = (value: string) => {
+    if (selectedItems.includes(value)) {
+      onChange(selectedItems.filter(item => item !== value));
+    } else if (selectedItems.length < maxItems) {
+      onChange([...selectedItems, value]);
+    }
+  };
+
+  const getProgressPercentage = () => {
+    const count = selectedItems.length;
+    if (count === 0) return 0;
+    if (count <= 2) return count === 1 ? 33 : 66;
+    return 100;
+  };
+
+  const getProgressColor = () => {
+    const count = selectedItems.length;
+    if (count <= 2) return "bg-orange-500";
+    return "bg-green-500";
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
+      <div className="shadow rounded-xl">
+        {/* Error banner */}
+        {error && (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">
+                  Atenção! Selecione mais alimentos:
+                </p>
+                <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+                  <li>{title}: selecione pelo menos 3 alimentos (atual: {selectedItems.length})</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="border-b border-[#F0F0F0] p-4">
+          <div className="flex items-center">
+            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+              <ChartLine className="text-green-600 w-5 h-5" />
+            </div>
+            <h1 className="text-xl font-black">{title}</h1>
+          </div>
+          <p className="text-md mt-2">{description}</p>
+
+          {/* Progress Bar and Counter */}
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                {selectedItems.length} de {maxItems} selecionados
+              </span>
+              <span className="text-sm text-gray-500">
+                {selectedItems.length >= 3 ? 'Ótimo!' : selectedItems.length > 0 ? 'Continue selecionando' : 'Selecione suas preferências'}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${getProgressColor()}`}
+                style={{ width: `${getProgressPercentage()}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-3">
+            {foods.map((food) => {
+              const isSelected = selectedItems.includes(food.value);
+              const isDisabled = !isSelected && selectedItems.length >= maxItems;
+
+              return (
+                <button
+                  key={food.value}
+                  onClick={() => handleItemToggle(food.value)}
+                  disabled={isDisabled}
+                  className={`
+                    text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
+                    ${isSelected
+                      ? 'border-green-500 bg-green-50 text-green-700'
+                      : isDisabled
+                        ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
+                    }
+                  `}
+                >
+                  <p className="text-xl mb-1">{food.emoji}</p>
+                  <span className="font-medium text-center leading-tight">{food.label}</span>
+                  {isSelected && (
+                    <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
