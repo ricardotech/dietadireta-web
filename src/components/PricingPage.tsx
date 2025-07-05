@@ -1,7 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { CheckCircle, Star, Zap, Shield, Clock, ArrowRight, Lock, Home, FileText, User, HelpCircle, LogOut, X, MenuIcon } from "lucide-react";
+import { CheckCircle, Star, Zap, Shield, Clock, ArrowRight, Lock, Home, FileText, User, HelpCircle, LogOut, X, MenuIcon, Quote } from "lucide-react";
 import { useState } from "react";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
 
 interface PricingPageProps {
     onBack: () => void;
@@ -223,91 +228,78 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
 
 
             {/* Pricing Cards */}
-            <div className="py-8 px-4 space-y-8">
-                {plans.map((plan) => (
-                    <div key={plan.id} className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
-                        <div className="border-b border-[#F0F0F0] p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center">
-                                    <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-                                        <Star className="text-green-600 w-5 h-5" />
+            <div className="py-8 px-4">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-12">
+                        <div className="flex items-center justify-center mb-4">
+                            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-3">
+                                <Star className="text-green-600 w-8 h-8" />
+                            </div>
+                            <h2 className="text-3xl lg:text-4xl font-black text-gray-900">Escolha sua dieta</h2>
+                        </div>
+                        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                            Preços que cabem no seu bolso com resultados garantidos
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {plans.map((plan) => (
+                            <div key={plan.id} className="bg-white rounded-xl shadow-lg border border-gray-100 flex flex-col h-[600px]">
+                                <div className="border-b border-[#F0F0F0] p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center">
+                                            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+                                                <Star className="text-green-600 w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h1 className="text-lg font-black">{plan.name}</h1>
+                                                <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${plan.badgeColor}`}>
+                                                    {plan.badge}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h1 className="text-xl font-black">{plan.name}</h1>
-                                        <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-1 ${plan.badgeColor}`}>
-                                            {plan.badge}
+                                    <div className="mt-3 text-center">
+                                        <div className="flex items-baseline justify-center gap-2">
+                                            <span className="text-2xl lg:text-3xl font-bold text-gray-900">{plan.price}</span>
+                                            <span className="text-sm lg:text-lg text-gray-500 line-through">{plan.originalPrice}</span>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="flex items-baseline gap-2 mb-1">
-                                        <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
-                                        <span className="text-lg text-gray-500 line-through">{plan.originalPrice}</span>
+                                <div className="p-4 flex-1 flex flex-col justify-between">
+                                    {/* Features */}
+                                    <ul className="space-y-2 mb-4 md:mb-6 flex-1">
+                                        {plan.features.map((feature, index) => (
+                                            <li key={index} className="flex items-start gap-2">
+                                                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                                <span className="text-sm text-gray-700">{feature}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    <div className="mt-auto">
+                                        {/* Button */}
+                                        <Button
+                                            onClick={() => onPurchase(plan.id)}
+                                            className={`w-full py-7 px-8 text-xl font-bold ${plan.buttonColor} text-white rounded-lg transition-colors duration-200 mb-2`}
+                                        >
+                                            {plan.buttonText}
+                                            <ArrowRight className="inline-block w-12 h-12 text-white ml-2" />
+                                        </Button>
+
+                                        {/* Extra link */}
+                                        {plan.extra && (
+                                            <div className="text-center mt-3">
+                                                <button className="text-green-600 hover:text-green-700 font-medium flex items-center justify-center gap-1">
+                                                    <span>Como Funciona</span>
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <p className="text-xs lg:text-sm text-gray-500 mt-3 mb-2 text-center">
+                                            Pagamento único e seguro
+                                            <Lock className="inline-block ml-1 w-3 h-3 lg:w-4 lg:h-4 text-gray-500" />
+                                        </p>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="p-4">
-                            {/* Features */}
-                            <ul className="space-y-3 mb-6">
-                                {plan.features.map((feature, index) => (
-                                    <li key={index} className="flex items-start gap-3">
-                                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                                        <span className="text-gray-700">{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* Button */}
-                            <Button
-                                onClick={() => onPurchase(plan.id)}
-                                className={`w-full py-7 px-8 text-xl font-bold ${plan.buttonColor} text-white rounded-lg transition-colors duration-200 mb-2`}
-                            >
-                                {plan.buttonText}
-                                <ArrowRight className="inline-block w-12 h-12 text-white" />
-                            </Button>
-
-                            {/* Extra link */}
-                            {plan.extra && (
-                                <div className="text-center mt-4">
-                                    <button className="text-purple-600 hover:text-purple-700 font-medium flex items-center justify-center gap-1">
-                                        <span>Como Funciona</span>
-                                    </button>
-                                </div>
-                            )}
-
-                            <p className="text-sm text-gray-500 mt-4 mb-2 text-center">
-                                Pagamento único e seguro
-                                <Lock className="inline-block ml-1 w-4 h-4 text-gray-500" />
-                            </p>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Testimonials */}
-            <div className="py-8 px-4">
-                <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
-                    <div className="border-b border-[#F0F0F0] p-4">
-                        <div className="flex items-center">
-                            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-                                <Star className="text-green-600 w-5 h-5" />
-                            </div>
-                            <h1 className="text-xl font-black">Veja o que nossos clientes dizem</h1>
-                        </div>
-                    </div>
-                    <div className="p-4 space-y-6">
-                        {testimonials.map((testimonial, index) => (
-                            <div key={index} className="border-b border-gray-100 pb-4 last:border-b-0">
-                                <div className="flex items-center gap-1 mb-3">
-                                    {[...Array(testimonial.rating)].map((_, i) => (
-                                        <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                    ))}
-                                </div>
-                                <p className="text-gray-700 mb-3 italic">"{testimonial.text}"</p>
-                                <div className="flex items-center justify-between">
-                                    <p className="font-semibold text-gray-900">{testimonial.name}</p>
-                                    <p className="text-green-600 font-medium">{testimonial.result}</p>
                                 </div>
                             </div>
                         ))}
@@ -315,33 +307,154 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                 </div>
             </div>
 
-            {/* Guarantee */}
-            <div className="py-8 px-4">
-                <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
-                    <div className="border-b border-[#F0F0F0] p-4">
-                        <div className="flex items-center">
-                            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-                                <Shield className="text-green-600 w-5 h-5" />
+            {/* Testimonials */}
+            <div className="py-8 px-4 bg-gradient-to-br from-gray-50 to-gray-100">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-12">
+                        <div className="flex items-center justify-center mb-4">
+                            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-3">
+                                <Quote className="text-green-600 w-8 h-8" />
                             </div>
-                            <h1 className="text-xl font-black">Garantia de 7 dias</h1>
+                            <h2 className="text-3xl lg:text-4xl font-black text-gray-900">Veja o que nossos clientes dizem</h2>
+                        </div>
+                        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                            Milhares de pessoas já transformaram suas vidas com nossas dietas personalizadas
+                        </p>
+                    </div>
+                    
+                    <div className="relative">
+                        <Swiper
+                            modules={[Navigation, Pagination, Autoplay]}
+                            spaceBetween={30}
+                            slidesPerView={1}
+                            navigation={{
+                                prevEl: '.swiper-button-prev-custom',
+                                nextEl: '.swiper-button-next-custom',
+                            }}
+                            pagination={{
+                                clickable: true,
+                                bulletClass: 'swiper-pagination-bullet-custom',
+                                bulletActiveClass: 'swiper-pagination-bullet-active-custom',
+                            }}
+                            autoplay={{
+                                delay: 5000,
+                                disableOnInteraction: false,
+                            }}
+                            breakpoints={{
+                                768: {
+                                    slidesPerView: 2,
+                                },
+                                1024: {
+                                    slidesPerView: 3,
+                                }
+                            }}
+                            className="testimonials-swiper"
+                        >
+                            {testimonials.map((testimonial, index) => (
+                                <SwiperSlide key={index} className="h-auto pb-14">
+                                    <div className="bg-white rounded-2xl p-8 border border-gray-100 h-[400px] flex flex-col relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-20 h-20 bg-green-50 rounded-bl-full flex items-center justify-center">
+                                            <Quote className="w-8 h-8 text-green-500 rotate-12" />
+                                        </div>
+                                        
+                                        <div className="flex items-center gap-1 mb-6">
+                                            {[...Array(testimonial.rating)].map((_, i) => (
+                                                <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                                            ))}
+                                        </div>
+                                        
+                                        <blockquote className="text-gray-700 text-lg leading-relaxed mb-6 flex-1 italic">
+                                            "{testimonial.text}"
+                                        </blockquote>
+                                        
+                                        <div className="border-t border-gray-100 pt-6 mt-auto">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="font-bold text-gray-900 text-lg">{testimonial.name}</p>
+                                                    <p className="text-green-600 font-semibold text-sm">{testimonial.result}</p>
+                                                </div>
+                                                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                                                    <CheckCircle className="w-6 h-6 text-white" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                        
+                        {/* Custom Navigation Buttons */}
+                        <div className="swiper-button-prev-custom absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-green-50 transition-colors">
+                            <ArrowRight className="w-5 h-5 text-gray-600 rotate-180" />
+                        </div>
+                        <div className="swiper-button-next-custom absolute right-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-green-50 transition-colors">
+                            <ArrowRight className="w-5 h-5 text-gray-600" />
                         </div>
                     </div>
-                    <div className="p-4">
-                        <p className="text-gray-600 text-lg mb-6">
-                            Se não ficar satisfeito com sua dieta personalizada, devolvemos 100% do seu dinheiro.
+                </div>
+                
+                {/* Custom Swiper Styles */}
+                <style jsx>{`
+                    .testimonials-swiper .swiper-pagination {
+                        bottom: -50px !important;
+                    }
+                    
+                    .swiper-pagination-bullet-custom {
+                        width: 12px;
+                        height: 12px;
+                        background: #d1d5db;
+                        border-radius: 50%;
+                        margin: 0 6px;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .swiper-pagination-bullet-active-custom {
+                        background: #10b981 !important;
+                        transform: scale(1.2);
+                    }
+                `}</style>
+            </div>
+
+            {/* Guarantee */}
+            <div className="py-8 px-4">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-12">
+                        <div className="flex items-center justify-center mb-4">
+                            <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-3">
+                                <Shield className="text-green-600 w-8 h-8" />
+                            </div>
+                            <h2 className="text-3xl lg:text-4xl font-black text-gray-900">Garantia de 7 dias</h2>
+                        </div>
+                        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                            Se não ficar satisfeito com sua dieta personalizada, devolvemos 100% do seu dinheiro
                         </p>
-                        <div className="flex items-center justify-center gap-4 text-sm text-gray-500 flex-wrap">
-                            <div className="flex items-center gap-1">
-                                <Lock className="w-4 h-4" />
-                                <span>Pagamento Seguro</span>
+                    </div>
+                    
+                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 max-w-4xl mx-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                            <div className="flex flex-col items-center">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                    <Lock className="w-8 h-8 text-green-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Pagamento Seguro</h3>
+                                <p className="text-gray-600">Seus dados estão protegidos com criptografia SSL</p>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                <span>Entrega Imediata</span>
+                            
+                            <div className="flex flex-col items-center">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                    <Clock className="w-8 h-8 text-green-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Entrega Imediata</h3>
+                                <p className="text-gray-600">Receba sua dieta personalizada em poucos minutos</p>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <Zap className="w-4 h-4" />
-                                <span>Resultados Garantidos</span>
+                            
+                            <div className="flex flex-col items-center">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                                    <Zap className="w-8 h-8 text-green-600" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Resultados Garantidos</h3>
+                                <p className="text-gray-600">Ou devolvemos 100% do seu investimento</p>
                             </div>
                         </div>
                     </div>
