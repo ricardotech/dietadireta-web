@@ -12,6 +12,8 @@ import { z } from "zod";
 import { FoodSelector } from "@/components/FoodSelector";
 import { PricingPage } from "@/components/PricingPage";
 import { Badge } from "@/components/ui/badge";
+import { AuthModal } from "@/components/AuthModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Form validation schema
 const formSchema = z.object({
@@ -106,6 +108,8 @@ const foodData = {
 
 function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { user, signOut, loading } = useAuth();
 
   const navigationItems = [
     { icon: Home, label: "Home", href: "/" },
@@ -113,6 +117,15 @@ function Header() {
     { icon: User, label: "Perfil", href: "/perfil" },
     { icon: HelpCircle, label: "Suporte", href: "/suporte" },
   ];
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsOpen(false);
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+  };
 
   return (
     <header className="p-4 flex border-b border-[#F0F0F0] bg-white fixed w-full z-50 h-[75px]">
@@ -127,23 +140,41 @@ function Header() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-6">
-          {navigationItems.map((item) => (
-            <Button
-              key={item.label}
-              variant="ghost"
-              className="text-sm px-4 py-2 flex items-center hover:bg-gray-100"
-            >
-              <item.icon className="w-4 h-4 mr-2" />
-              {item.label}
-            </Button>
-          ))}
+          {!loading && (
+            user ? (
+              <>
+                <Button
+                  variant="ghost"
+                  className="text-sm px-4 py-2 flex items-center hover:bg-gray-100"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Perfil
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSignOut}
+                  className="text-sm px-4 py-2 flex items-center hover:bg-gray-100 border-gray-200"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
+              </>
+            ) : (
+              <Button
+                onClick={() => setShowAuthModal(true)}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 text-md font-medium"
+              >
+                Já possuo uma conta
+              </Button>
+            )
+          )}
         </div>
 
         {/* Mobile Navigation */}
         <div className="md:hidden">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button className="bg-gray-100">
+              <Button className="bg-gray-100 hover:bg-gray-200 p-2">
                 <MenuIcon className="w-8 h-8 text-black" />
                 <span className="sr-only">Menu</span>
               </Button>
@@ -156,7 +187,11 @@ function Header() {
                   <div className="flex items-center">
                     <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">🥦</div>
                     <div className="ml-3">
-                      <h1 className="text-lg font-bold text-gray-900">Nutri Inteligente</h1>
+                      <img
+                        src="/logo.png"
+                        alt="Logo"
+                        className="h-8 w-auto"
+                      />
                       <p className="text-xs text-gray-500">Sua alimentação ideal</p>
                     </div>
                   </div>
@@ -191,38 +226,67 @@ function Header() {
 
                 {/* User Profile Section */}
                 <div className="border-t border-gray-100 p-6 space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-gray-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Meu Perfil</p>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="mr-2">📧</span>
-                      <span>lucaslu@gmail.com</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <span className="mr-2">💰</span>
-                      <span>Saldo: #0</span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start px-0 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <LogOut className="w-4 h-4 mr-3" />
-                    Sair
-                  </Button>
+                  {!loading && (
+                    user ? (
+                      <>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                            <User className="w-4 h-4 text-gray-600" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Meu Perfil</p>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <span className="mr-2">📧</span>
+                            <span>{user.email}</span>
+                          </div>
+                          {user.phoneNumber && (
+                            <div className="flex items-center text-sm text-gray-600">
+                              <span className="mr-2">📱</span>
+                              <span>{user.phoneNumber}</span>
+                            </div>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          className="w-full justify-start px-0 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          onClick={handleSignOut}
+                        >
+                          <LogOut className="w-4 h-4 mr-3" />
+                          Sair
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <Button
+                          onClick={() => {
+                            setShowAuthModal(true);
+                            setIsOpen(false);
+                          }}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3"
+                        >
+                          Já possuo uma conta
+                        </Button>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </SheetContent>
           </Sheet>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
+        selectedPlan="basic"
+        planName="Acesso à Dieta"
+      />
     </header>
   )
 }
@@ -528,10 +592,10 @@ function App() {
   const onSubmit = async (data: FormData) => {
     // Clear previous validation errors
     setMealValidationErrors({});
-    
+
     // Custom validation for meal selections - only main meals are required
     const newValidationErrors: Record<string, string> = {};
-    
+
     // Only validate meals that are included (toggled on)
     if (data.includeCafeManha && data.breakfastItems.length < 3) {
       newValidationErrors.breakfast = 'Selecione pelo menos 3 alimentos para o café da manhã';
@@ -542,7 +606,7 @@ function App() {
     if (data.includeJantar && data.dinnerItems.length < 3) {
       newValidationErrors.dinner = 'Selecione pelo menos 3 alimentos para o jantar';
     }
-    
+
     // Optional meals - only validate if they are included
     if (data.includeLancheManha && data.morningSnackItems.length < 3) {
       newValidationErrors.morningSnack = 'Selecione pelo menos 3 alimentos para o lanche da manhã';
@@ -550,12 +614,12 @@ function App() {
     if (data.includeLancheTarde && data.afternoonSnackItems.length < 3) {
       newValidationErrors.afternoonSnack = 'Selecione pelo menos 3 alimentos para o lanche da tarde';
     }
-    
+
     if (Object.keys(newValidationErrors).length > 0) {
       setMealValidationErrors(newValidationErrors);
       return;
     }
-    
+
     setIsSubmitting(true);
     console.log('Form data:', data);
     // Simulate API call

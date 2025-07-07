@@ -3,7 +3,15 @@ import { z } from 'zod';
 // Auth schemas matching the API
 export const signUpSchema = z.object({
   email: z.string().email('Email inválido'),
-  phoneNumber: z.string().min(10, 'Número deve ter pelo menos 10 dígitos').optional(),
+  phoneNumber: z.string().optional().refine(
+    (value) => {
+      if (!value) return true; // Optional field
+      // Remove mask characters and validate
+      const digitsOnly = value.replace(/\D/g, '');
+      return digitsOnly.length >= 10;
+    },
+    'Número deve ter pelo menos 10 dígitos'
+  ),
   password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
 });
 
@@ -19,7 +27,7 @@ export interface AuthResponse {
   user: {
     id: string;
     email: string;
-    phoneNumber: string;
+    phoneNumber?: string;
   };
   token: string;
   userToken: string;
@@ -70,33 +78,30 @@ export class AuthService {
 
   static saveAuth(authData: AuthResponse): void {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', authData.token);
-      localStorage.setItem('user_token', authData.userToken);
-      localStorage.setItem('user_data', JSON.stringify(authData.user));
+      localStorage.setItem('token', authData.token);
+      localStorage.setItem('user', JSON.stringify(authData.user));
     }
   }
 
   static getAuth(): AuthResponse | null {
     if (typeof window === 'undefined') return null;
     
-    const token = localStorage.getItem('auth_token');
-    const userToken = localStorage.getItem('user_token');
-    const userData = localStorage.getItem('user_data');
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
 
-    if (!token || !userToken || !userData) return null;
+    if (!token || !userData) return null;
 
     return {
       token,
-      userToken,
+      userToken: '', // Not used in frontend
       user: JSON.parse(userData),
     };
   }
 
   static clearAuth(): void {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_token');
-      localStorage.removeItem('user_data');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
   }
 

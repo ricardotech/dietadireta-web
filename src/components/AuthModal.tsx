@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AuthService, signUpSchema, signInSchema, SignUpData, SignInData } from '@/lib/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { X, Eye, EyeOff, Loader2, Mail, Phone, Lock, User, CheckCircle } from 'lucide-react';
+import { IMaskInput } from 'react-imask';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
+  const { login, register } = useAuth();
 
   const signUpForm = useForm<SignUpData>({
     resolver: zodResolver(signUpSchema),
@@ -48,9 +51,23 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
     setError(null);
 
     try {
-      const response = await AuthService.signUp(data);
-      AuthService.saveAuth(response);
-      onSuccess(selectedPlan);
+      // Prepare data for backend - remove empty phoneNumber field
+      const signUpData: Partial<SignUpData> = {
+        email: data.email,
+        password: data.password,
+      };
+      
+      // Only include phoneNumber if it has content
+      if (data.phoneNumber && data.phoneNumber.trim() !== '') {
+        signUpData.phoneNumber = data.phoneNumber;
+      }
+      
+      const result = await register(signUpData as SignUpData);
+      if (!result.error) {
+        onSuccess(selectedPlan);
+      } else {
+        setError(result.message);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao criar conta');
     } finally {
@@ -63,9 +80,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
     setError(null);
 
     try {
-      const response = await AuthService.signIn(data);
-      AuthService.saveAuth(response);
-      onSuccess(selectedPlan);
+      const result = await login(data);
+      if (!result.error) {
+        onSuccess(selectedPlan);
+      } else {
+        setError(result.message);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
     } finally {
@@ -224,12 +244,13 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
                   Telefone (opcional)
                 </Label>
                 <div className="relative mt-1">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <IMaskInput
+                    mask="(00) 00000-0000"
                     id="phone"
                     type="tel"
-                    placeholder="(11) 99999-9999"
-                    className="pl-10"
+                    placeholder="(11) 91579-9139"
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10"
                     {...signUpForm.register('phoneNumber')}
                   />
                 </div>

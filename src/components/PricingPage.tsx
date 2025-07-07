@@ -30,7 +30,11 @@ function Header() {
                 <div className="flex items-center">
                     <h1 className="text-4xl font-bold">🥦</h1>
                     <div className="ml-4">
-                        <h1 className="text-xl font-bold">Nutri Inteligente</h1>
+                        <img
+                            src="/logo.png"
+                            alt="Logo"
+                            className="h-8 w-auto"
+                        />
                         <p className="text-sm -mt-1 text-gray-600">O maior site de dietas do Brasil</p>
                     </div>
                 </div>
@@ -66,7 +70,11 @@ function Header() {
                                     <div className="flex items-center">
                                         <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">🥦</div>
                                         <div className="ml-3">
-                                            <h1 className="text-lg font-bold text-gray-900">Nutri Inteligente</h1>
+                                            <img
+                                                src="/logo.png"
+                                                alt="Logo"
+                                                className="h-6 w-auto"
+                                            />
                                             <p className="text-xs text-gray-500">Sua alimentação ideal</p>
                                         </div>
                                     </div>

@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 type User = {
   id: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber?: string;
 };
 
 type AuthResponse = {
@@ -107,6 +107,7 @@ function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initializeAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const whoami = async (): Promise<User | null> => {
@@ -326,7 +327,7 @@ function useAuth() {
 
 export { AuthProvider, useAuth };
 
-export function withAuth<T extends {}>(Component: React.ComponentType<T>) {
+export function withAuth<T extends object>(Component: React.ComponentType<T>) {
   return function AuthWrapped(props: T) {
     const { user, loading } = useAuth();
     const router = useRouter();
