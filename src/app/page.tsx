@@ -109,6 +109,7 @@ const foodData = {
 function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
   const { user, signOut, loading } = useAuth();
 
   const navigationItems = [
@@ -161,7 +162,10 @@ function Header() {
               </>
             ) : (
               <Button
-                onClick={() => setShowAuthModal(true)}
+                onClick={() => {
+                  setAuthModalMode('signin');
+                  setShowAuthModal(true);
+                }}
                 className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 text-md font-medium"
               >
                 Já possuo uma conta
@@ -262,6 +266,7 @@ function Header() {
                       <div className="text-center">
                         <Button
                           onClick={() => {
+                            setAuthModalMode('signin');
                             setShowAuthModal(true);
                             setIsOpen(false);
                           }}
@@ -286,6 +291,7 @@ function Header() {
         onSuccess={handleAuthSuccess}
         selectedPlan="basic"
         planName="Acesso à Dieta"
+        initialMode={authModalMode}
       />
     </header>
   )

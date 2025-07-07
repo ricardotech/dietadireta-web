@@ -503,6 +503,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                 onSuccess={handleAuthSuccess}
                 selectedPlan={authModal.planId}
                 planName={authModal.planName}
+                initialMode="signup"
             />
         </main>
     );

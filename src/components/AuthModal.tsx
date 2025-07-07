@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -17,10 +17,11 @@ interface AuthModalProps {
   onSuccess: (planId: string) => void;
   selectedPlan: string;
   planName: string;
+  initialMode?: 'signin' | 'signup'; // Add prop to control initial mode
 }
 
-export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }: AuthModalProps) {
-  const [isSignUp, setIsSignUp] = useState(true);
+export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, initialMode = 'signup' }: AuthModalProps) {
+  const [isSignUp, setIsSignUp] = useState(initialMode === 'signup');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +29,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName }
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState<string | null>(null);
   const { login, register } = useAuth();
+
+  // Reset modal state when it opens with different mode
+  useEffect(() => {
+    if (isOpen) {
+      setIsSignUp(initialMode === 'signup');
+      setError(null);
+      setIsForgotPassword(false);
+      setForgotPasswordMessage(null);
+    }
+  }, [isOpen, initialMode]);
 
   const signUpForm = useForm<SignUpData>({
     resolver: zodResolver(signUpSchema),
