@@ -30,11 +30,46 @@ const formSchema = z.object({
   objective: z.string().min(1, "Por favor, selecione qual é o seu objetivo principal"),
   calories: z.string().min(1, "Por favor, selecione quantas calorias você deseja consumir por dia"),
   schedule: z.string().min(1, "Por favor, selecione o horário que melhor se adapta à sua rotina"),
-  breakfastItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o café da manhã"),
-  morningSnackItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o lanche da manhã"),
-  lunchItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o almoço"),
-  afternoonSnackItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o lanche da tarde"),
-  dinnerItems: z.array(z.string()).min(3, "Selecione pelo menos 3 alimentos para o jantar"),
+  includeCafeManha: z.boolean(),
+  includeLancheManha: z.boolean(),
+  includeAlmoco: z.boolean(),
+  includeLancheTarde: z.boolean(),
+  includeJantar: z.boolean(),
+  breakfastItems: z.array(z.string()).refine(
+    (items, ctx) => {
+      const { includeCafeManha } = ctx.parent as any;
+      return !includeCafeManha || items.length >= 3;
+    },
+    "Selecione pelo menos 3 alimentos para o café da manhã"
+  ),
+  morningSnackItems: z.array(z.string()).refine(
+    (items, ctx) => {
+      const { includeLancheManha } = ctx.parent as any;
+      return !includeLancheManha || items.length >= 3;
+    },
+    "Selecione pelo menos 3 alimentos para o lanche da manhã"
+  ),
+  lunchItems: z.array(z.string()).refine(
+    (items, ctx) => {
+      const { includeAlmoco } = ctx.parent as any;
+      return !includeAlmoco || items.length >= 3;
+    },
+    "Selecione pelo menos 3 alimentos para o almoço"
+  ),
+  afternoonSnackItems: z.array(z.string()).refine(
+    (items, ctx) => {
+      const { includeLancheTarde } = ctx.parent as any;
+      return !includeLancheTarde || items.length >= 3;
+    },
+    "Selecione pelo menos 3 alimentos para o lanche da tarde"
+  ),
+  dinnerItems: z.array(z.string()).refine(
+    (items, ctx) => {
+      const { includeJantar } = ctx.parent as any;
+      return !includeJantar || items.length >= 3;
+    },
+    "Selecione pelo menos 3 alimentos para o jantar"
+  ),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -504,6 +539,11 @@ function App() {
       objective: '',
       calories: '',
       schedule: '',
+      includeCafeManha: true,
+      includeLancheManha: false,
+      includeAlmoco: true,
+      includeLancheTarde: false,
+      includeJantar: true,
       breakfastItems: [],
       morningSnackItems: [],
       lunchItems: [],
@@ -546,8 +586,8 @@ function App() {
 
           <FoodSelector
             title="Café da manhã"
-            description="Selecione os alimentos que você costuma consumir"
-            fieldName="breakfastItems"
+            isIncluded={watch("includeCafeManha") || false}
+            onToggleInclude={(included) => setValue("includeCafeManha", included)}
             foods={foodData.breakfast}
             selectedItems={watch("breakfastItems") || []}
             onChange={(items) => setValue("breakfastItems", items)}
@@ -556,8 +596,8 @@ function App() {
 
           <FoodSelector
             title="Lanche da manhã"
-            description="Selecione os alimentos que você costuma consumir"
-            fieldName="morningSnackItems"
+            isIncluded={watch("includeLancheManha") || false}
+            onToggleInclude={(included) => setValue("includeLancheManha", included)}
             foods={foodData.morningSnack}
             selectedItems={watch("morningSnackItems") || []}
             onChange={(items) => setValue("morningSnackItems", items)}
@@ -566,8 +606,8 @@ function App() {
 
           <FoodSelector
             title="Almoço"
-            description="Selecione os alimentos que você costuma consumir"
-            fieldName="lunchItems"
+            isIncluded={watch("includeAlmoco") || false}
+            onToggleInclude={(included) => setValue("includeAlmoco", included)}
             foods={foodData.lunch}
             selectedItems={watch("lunchItems") || []}
             onChange={(items) => setValue("lunchItems", items)}
@@ -576,8 +616,8 @@ function App() {
 
           <FoodSelector
             title="Lanche da tarde"
-            description="Selecione os alimentos que você costuma consumir"
-            fieldName="afternoonSnackItems"
+            isIncluded={watch("includeLancheTarde") || false}
+            onToggleInclude={(included) => setValue("includeLancheTarde", included)}
             foods={foodData.afternoonSnack}
             selectedItems={watch("afternoonSnackItems") || []}
             onChange={(items) => setValue("afternoonSnackItems", items)}
@@ -586,8 +626,8 @@ function App() {
 
           <FoodSelector
             title="Jantar"
-            description="Selecione os alimentos que você costuma consumir"
-            fieldName="dinnerItems"
+            isIncluded={watch("includeJantar") || false}
+            onToggleInclude={(included) => setValue("includeJantar", included)}
             foods={foodData.dinner}
             selectedItems={watch("dinnerItems") || []}
             onChange={(items) => setValue("dinnerItems", items)}
