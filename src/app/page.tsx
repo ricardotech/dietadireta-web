@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil } from "lucide-react";
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, Control, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FoodSelector } from "@/components/FoodSelector";
@@ -29,50 +29,21 @@ const formSchema = z.object({
   ),
   objective: z.string().min(1, "Por favor, selecione qual é o seu objetivo principal"),
   calories: z.string().min(1, "Por favor, selecione quantas calorias você deseja consumir por dia"),
-  schedule: z.string().min(1, "Por favor, selecione o horário que melhor se adapta à sua rotina"),
+  // schedule: z.string().min(1, "Por favor, selecione o horário que melhor se adapta à sua rotina"),
   includeCafeManha: z.boolean(),
   includeLancheManha: z.boolean(),
   includeAlmoco: z.boolean(),
   includeLancheTarde: z.boolean(),
   includeJantar: z.boolean(),
-  breakfastItems: z.array(z.string()).refine(
-    (items, ctx) => {
-      const { includeCafeManha } = ctx.parent as any;
-      return !includeCafeManha || items.length >= 3;
-    },
-    "Selecione pelo menos 3 alimentos para o café da manhã"
-  ),
-  morningSnackItems: z.array(z.string()).refine(
-    (items, ctx) => {
-      const { includeLancheManha } = ctx.parent as any;
-      return !includeLancheManha || items.length >= 3;
-    },
-    "Selecione pelo menos 3 alimentos para o lanche da manhã"
-  ),
-  lunchItems: z.array(z.string()).refine(
-    (items, ctx) => {
-      const { includeAlmoco } = ctx.parent as any;
-      return !includeAlmoco || items.length >= 3;
-    },
-    "Selecione pelo menos 3 alimentos para o almoço"
-  ),
-  afternoonSnackItems: z.array(z.string()).refine(
-    (items, ctx) => {
-      const { includeLancheTarde } = ctx.parent as any;
-      return !includeLancheTarde || items.length >= 3;
-    },
-    "Selecione pelo menos 3 alimentos para o lanche da tarde"
-  ),
-  dinnerItems: z.array(z.string()).refine(
-    (items, ctx) => {
-      const { includeJantar } = ctx.parent as any;
-      return !includeJantar || items.length >= 3;
-    },
-    "Selecione pelo menos 3 alimentos para o jantar"
-  ),
+  breakfastItems: z.array(z.string()),
+  morningSnackItems: z.array(z.string()),
+  lunchItems: z.array(z.string()),
+  afternoonSnackItems: z.array(z.string()),
+  dinnerItems: z.array(z.string()),
 });
 
 type FormData = z.infer<typeof formSchema>;
+
 
 // Food data
 const foodData = {
@@ -256,7 +227,7 @@ function Header() {
   )
 }
 
-function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
+function MedidasCorporais({ control, errors }: { control: Control<FormData>, errors: FieldErrors<FormData> }) {
   const objectives = [
     { value: "emagrecer", label: "Emagrecer" },
     { value: "emagrecer_massa", label: "Emagrecer + Massa" },
@@ -275,16 +246,16 @@ function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
     { value: "3000", label: "3000 kcal" },
   ];
 
-  const schedules = [
-    { value: "custom", label: "Tenho meu próprio horário" },
-    { value: "05:30-08:30-12:00-15:00-19:00", label: "05:30, 08:30, 12:00, 15:00, 19:00" },
-    { value: "06:00-09:00-12:00-15:00-19:00", label: "06:00, 09:00, 12:00, 15:00, 19:00" },
-    { value: "06:30-09:30-13:00-16:00-20:00", label: "06:30, 09:30, 13:00, 16:00, 20:00" },
-    { value: "07:00-10:00-12:30-15:30-19:30", label: "07:00, 10:00, 12:30, 15:30, 19:30" },
-    { value: "07:30-10:30-12:00-15:00-19:00", label: "07:30, 10:30, 12:00, 15:00, 19:00" },
-    { value: "08:00-11:00-13:30-16:30-20:30", label: "08:00, 11:00, 13:30, 16:30, 20:30" },
-    { value: "09:00-11:00-13:00-16:00-21:00", label: "09:00, 11:00, 13:00, 16:00, 21:00" },
-  ];
+  // const schedules = [
+  //   { value: "custom", label: "Tenho meu próprio horário" },
+  //   { value: "05:30-08:30-12:00-15:00-19:00", label: "05:30, 08:30, 12:00, 15:00, 19:00" },
+  //   { value: "06:00-09:00-12:00-15:00-19:00", label: "06:00, 09:00, 12:00, 15:00, 19:00" },
+  //   { value: "06:30-09:30-13:00-16:00-20:00", label: "06:30, 09:30, 13:00, 16:00, 20:00" },
+  //   { value: "07:00-10:00-12:30-15:30-19:30", label: "07:00, 10:00, 12:30, 15:30, 19:30" },
+  //   { value: "07:30-10:30-12:00-15:00-19:00", label: "07:30, 10:30, 12:00, 15:00, 19:00" },
+  //   { value: "08:00-11:00-13:30-16:30-20:30", label: "08:00, 11:00, 13:30, 16:30, 20:30" },
+  //   { value: "09:00-11:00-13:00-16:00-21:00", label: "09:00, 11:00, 13:00, 16:00, 21:00" },
+  // ];
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
@@ -431,6 +402,7 @@ function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
             )}
           </div>
 
+          {/* 
           <div>
             <Controller
               name="schedule"
@@ -457,13 +429,14 @@ function MedidasCorporais({ control, errors }: { control: any, errors: any }) {
               </p>
             )}
           </div>
+          */}
         </div>
       </div>
     </div>
   )
 }
 
-function DietaPersonalizada({ onSubmit, isSubmitting }: { onSubmit: () => void, isSubmitting: boolean }) {
+function DietaPersonalizada({ onClick, isSubmitting }: { onClick: () => void, isSubmitting: boolean }) {
   return (
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
       <div className="p-8">
@@ -502,7 +475,7 @@ function DietaPersonalizada({ onSubmit, isSubmitting }: { onSubmit: () => void, 
 
         <div className="text-center">
           <Button
-            onClick={onSubmit}
+            onClick={onClick}
             disabled={isSubmitting}
             className="bg-green-500 hover:bg-green-600 text-white font-bold py-7 px-8 rounded-lg transition-colors duration-200 w-full mb-2 text-xl"
           >
@@ -522,10 +495,10 @@ function DietaPersonalizada({ onSubmit, isSubmitting }: { onSubmit: () => void, 
 function App() {
   const [showPricing, setShowPricing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mealValidationErrors, setMealValidationErrors] = useState<Record<string, string>>({});
 
   const {
     control,
-    handleSubmit,
     watch,
     setValue,
     formState: { errors }
@@ -538,7 +511,7 @@ function App() {
       age: '',
       objective: '',
       calories: '',
-      schedule: '',
+      // schedule: '',
       includeCafeManha: true,
       includeLancheManha: false,
       includeAlmoco: true,
@@ -553,6 +526,36 @@ function App() {
   });
 
   const onSubmit = async (data: FormData) => {
+    // Clear previous validation errors
+    setMealValidationErrors({});
+    
+    // Custom validation for meal selections - only main meals are required
+    const newValidationErrors: Record<string, string> = {};
+    
+    // Only validate meals that are included (toggled on)
+    if (data.includeCafeManha && data.breakfastItems.length < 3) {
+      newValidationErrors.breakfast = 'Selecione pelo menos 3 alimentos para o café da manhã';
+    }
+    if (data.includeAlmoco && data.lunchItems.length < 3) {
+      newValidationErrors.lunch = 'Selecione pelo menos 3 alimentos para o almoço';
+    }
+    if (data.includeJantar && data.dinnerItems.length < 3) {
+      newValidationErrors.dinner = 'Selecione pelo menos 3 alimentos para o jantar';
+    }
+    
+    // Optional meals - only validate if they are included
+    if (data.includeLancheManha && data.morningSnackItems.length < 3) {
+      newValidationErrors.morningSnack = 'Selecione pelo menos 3 alimentos para o lanche da manhã';
+    }
+    if (data.includeLancheTarde && data.afternoonSnackItems.length < 3) {
+      newValidationErrors.afternoonSnack = 'Selecione pelo menos 3 alimentos para o lanche da tarde';
+    }
+    
+    if (Object.keys(newValidationErrors).length > 0) {
+      setMealValidationErrors(newValidationErrors);
+      return;
+    }
+    
     setIsSubmitting(true);
     console.log('Form data:', data);
     // Simulate API call
@@ -580,66 +583,67 @@ function App() {
       <Header />
       <div className="h-[70px]"></div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="py-8 px-4 space-y-8">
-          <MedidasCorporais control={control} errors={errors} />
+      <div className="py-8 px-4 space-y-8">
+        <MedidasCorporais control={control} errors={errors} />
 
-          <FoodSelector
-            title="Café da manhã"
-            isIncluded={watch("includeCafeManha") || false}
-            onToggleInclude={(included) => setValue("includeCafeManha", included)}
-            foods={foodData.breakfast}
-            selectedItems={watch("breakfastItems") || []}
-            onChange={(items) => setValue("breakfastItems", items)}
-            error={errors.breakfastItems?.message}
-          />
+        <FoodSelector
+          title="Café da manhã"
+          isIncluded={watch("includeCafeManha") || false}
+          onToggleInclude={(included) => setValue("includeCafeManha", included)}
+          foods={foodData.breakfast}
+          selectedItems={watch("breakfastItems") || []}
+          onChange={(items) => setValue("breakfastItems", items)}
+          error={mealValidationErrors.breakfast}
+        />
 
-          <FoodSelector
-            title="Lanche da manhã"
-            isIncluded={watch("includeLancheManha") || false}
-            onToggleInclude={(included) => setValue("includeLancheManha", included)}
-            foods={foodData.morningSnack}
-            selectedItems={watch("morningSnackItems") || []}
-            onChange={(items) => setValue("morningSnackItems", items)}
-            error={errors.morningSnackItems?.message}
-          />
+        <FoodSelector
+          title="Lanche da manhã"
+          isIncluded={watch("includeLancheManha") || false}
+          onToggleInclude={(included) => setValue("includeLancheManha", included)}
+          foods={foodData.morningSnack}
+          selectedItems={watch("morningSnackItems") || []}
+          onChange={(items) => setValue("morningSnackItems", items)}
+          error={mealValidationErrors.morningSnack}
+        />
 
-          <FoodSelector
-            title="Almoço"
-            isIncluded={watch("includeAlmoco") || false}
-            onToggleInclude={(included) => setValue("includeAlmoco", included)}
-            foods={foodData.lunch}
-            selectedItems={watch("lunchItems") || []}
-            onChange={(items) => setValue("lunchItems", items)}
-            error={errors.lunchItems?.message}
-          />
+        <FoodSelector
+          title="Almoço"
+          isIncluded={watch("includeAlmoco") || false}
+          onToggleInclude={(included) => setValue("includeAlmoco", included)}
+          foods={foodData.lunch}
+          selectedItems={watch("lunchItems") || []}
+          onChange={(items) => setValue("lunchItems", items)}
+          error={mealValidationErrors.lunch}
+        />
 
-          <FoodSelector
-            title="Lanche da tarde"
-            isIncluded={watch("includeLancheTarde") || false}
-            onToggleInclude={(included) => setValue("includeLancheTarde", included)}
-            foods={foodData.afternoonSnack}
-            selectedItems={watch("afternoonSnackItems") || []}
-            onChange={(items) => setValue("afternoonSnackItems", items)}
-            error={errors.afternoonSnackItems?.message}
-          />
+        <FoodSelector
+          title="Lanche da tarde"
+          isIncluded={watch("includeLancheTarde") || false}
+          onToggleInclude={(included) => setValue("includeLancheTarde", included)}
+          foods={foodData.afternoonSnack}
+          selectedItems={watch("afternoonSnackItems") || []}
+          onChange={(items) => setValue("afternoonSnackItems", items)}
+          error={mealValidationErrors.afternoonSnack}
+        />
 
-          <FoodSelector
-            title="Jantar"
-            isIncluded={watch("includeJantar") || false}
-            onToggleInclude={(included) => setValue("includeJantar", included)}
-            foods={foodData.dinner}
-            selectedItems={watch("dinnerItems") || []}
-            onChange={(items) => setValue("dinnerItems", items)}
-            error={errors.dinnerItems?.message}
-          />
+        <FoodSelector
+          title="Jantar"
+          isIncluded={watch("includeJantar") || false}
+          onToggleInclude={(included) => setValue("includeJantar", included)}
+          foods={foodData.dinner}
+          selectedItems={watch("dinnerItems") || []}
+          onChange={(items) => setValue("dinnerItems", items)}
+          error={mealValidationErrors.dinner}
+        />
 
-          <DietaPersonalizada
-            onSubmit={handleSubmit(onSubmit)}
-            isSubmitting={isSubmitting}
-          />
-        </div>
-      </form>
+        <DietaPersonalizada
+          onClick={() => {
+            const data = watch();
+            onSubmit(data);
+          }}
+          isSubmitting={isSubmitting}
+        />
+      </div>
     </main>
   );
 }

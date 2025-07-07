@@ -72,7 +72,7 @@ export function FoodSelector({
             </div>
             <h1 className="text-xl font-black">{title}</h1>
           </div>
-          <p className="text-md mt-2">Selecione se deseja incluir "{title.toLowerCase()}" na sua dieta</p>
+          <p className="text-md mt-2">Selecione se deseja incluir &ldquo;{title.toLowerCase()}&rdquo; na sua dieta</p>
         </div>
 
         <div className="p-4">
