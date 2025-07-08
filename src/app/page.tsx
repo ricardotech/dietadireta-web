@@ -542,6 +542,8 @@ function DietaPersonalizada({
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [dietData, setDietData] = useState<any>(null);
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const { toPDF, targetRef } = usePDF({ filename: 'minha-dieta-personalizada.pdf' });
 
   const loadingSteps = [
@@ -554,27 +556,33 @@ function DietaPersonalizada({
   // API call to generate diet
   const generateDiet = async () => {
     try {
-      const response = await fetch('/api/prompt', {
+      // Get auth token from localStorage or context
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/generatePrompt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          weight: Number(formData?.weight),
-          height: Number(formData?.height),
-          age: Number(formData?.age),
-          objective: formData?.objective,
-          // caloriasDiarias: Number(formData?.calories),
-          breakfastItems: formData?.breakfastItems || [],
-          morningSnackItems: formData?.morningSnackItems || [],
-          lunchItems: formData?.lunchItems || [],
-          afternoonSnackItems: formData?.afternoonSnackItems || [],
-          dinnerItems: formData?.dinnerItems || [],
-          includeCafeManha: true,
-          includeLancheManha: formData?.includeLancheManha,
-          includeAlmoco: true,
-          includeLancheTarde: formData?.includeLancheTarde,
-          includeJantar: true,
+          weight: formData?.weight || '70',
+          height: formData?.height || '170',
+          age: formData?.age || '30',
+          goal: formData?.objective || 'maintenance',
+          calories: '2000',
+          gender: 'male',
+          schedule: 'regular',
+          activityLevel: 'moderate',
+          workoutPlan: 'none',
+          breakfast: formData?.breakfastItems?.join(', ') || 'ovos, aveia, frutas',
+          morningSnack: formData?.morningSnackItems?.join(', ') || 'frutas, castanhas',
+          lunch: formData?.lunchItems?.join(', ') || 'frango, arroz, verduras',
+          afternoonSnack: formData?.afternoonSnackItems?.join(', ') || 'iogurte, frutas',
+          dinner: formData?.dinnerItems?.join(', ') || 'peixe, batata, salada',
         }),
       });
 
@@ -583,7 +591,20 @@ function DietaPersonalizada({
       }
 
       const data = await response.json();
-      setDietData(data);
+      console.log('API Response:', data);
+      
+      // Set both diet data and order data
+      if (data.success) {
+        setOrderData(data.data);
+        setDietData({
+          // We'll parse the AI response later when payment is confirmed
+          orderId: data.data.orderId,
+          qrCodeUrl: data.data.qrCodeUrl,
+          status: data.data.status,
+          amount: data.data.amount,
+          expiresAt: data.data.expiresAt
+        });
+      }
       return data;
     } catch (error) {
       console.error('Error generating diet:', error);
@@ -612,6 +633,33 @@ function DietaPersonalizada({
     }
   };
 
+  // Function to check payment status
+  const checkPaymentStatus = async (orderId: string) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/payment-status/${orderId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check payment status');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      throw error;
+    }
+  };
+
   // Handle loading progress with increased time
   useEffect(() => {
     if (currentStep === 'loading') {
@@ -637,10 +685,62 @@ function DietaPersonalizada({
     }
   }, [currentStep, onUnlock]);
 
-  const handlePaymentConfirm = () => {
-    setIsPaymentConfirmed(true);
-    setShowPaymentModal(false);
-    onPaymentSuccess();
+  const handlePaymentConfirm = async () => {
+    if (!orderData?.orderId) {
+      alert('Erro: ID do pedido não encontrado.');
+      return;
+    }
+
+    setIsCheckingPayment(true);
+    try {
+      const paymentStatus = await checkPaymentStatus(orderData.orderId);
+      
+      if (paymentStatus.success && paymentStatus.paid) {
+        setIsPaymentConfirmed(true);
+        setShowPaymentModal(false);
+        
+        // If diet is ready, parse and set the diet data
+        if (paymentStatus.data?.aiResponse) {
+          const parsedDiet = parseDietResponse(paymentStatus.data.aiResponse);
+          setDietData(parsedDiet);
+        }
+        
+        onPaymentSuccess();
+      } else {
+        alert('Pagamento ainda não foi confirmado. Tente novamente em alguns minutos.');
+      }
+    } catch (error) {
+      console.error('Error checking payment:', error);
+      alert('Erro ao verificar pagamento. Tente novamente.');
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
+  // Function to parse AI diet response into structured data
+  const parseDietResponse = (aiResponse: string) => {
+    // Simple parsing - in a real app, you'd want more sophisticated parsing
+    const mockParsedData = {
+      breakfast: [
+        { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
+        { name: "Café com Leite", quantity: "200ml", calories: 80 },
+        { name: "Banana", quantity: "1 unidade", calories: 90 }
+      ],
+      lunch: [
+        { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+        { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+        { name: "Brócolis", quantity: "1 xícara", calories: 55 }
+      ],
+      dinner: [
+        { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+        { name: "Batata Doce", quantity: "1 unidade pequena", calories: 120 },
+        { name: "Salada Verde", quantity: "1 prato", calories: 50 }
+      ],
+      totalCalories: 1425,
+      fullResponse: aiResponse
+    };
+    
+    return mockParsedData;
   };
 
   const LoadingStep = ({ icon: Icon, title, description, isActive, isCompleted }: {
@@ -986,42 +1086,61 @@ function DietaPersonalizada({
 
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <div className="w-48 h-48 bg-white border-2 border-gray-200 rounded-lg mx-auto flex items-center justify-center mb-4">
-                  <div className="text-center">
-                    <ArrowRight className="w-24 h-24 text-gray-400 mx-auto mb-2 rotate-45" />
-                    <p className="text-sm text-gray-500">QR Code PIX</p>
-                  </div>
+                  {orderData?.qrCodeUrl ? (
+                    <iframe
+                      src={orderData.qrCodeUrl}
+                      width="192"
+                      height="192"
+                      style={{ border: 'none' }}
+                      title="QR Code PIX"
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <ArrowRight className="w-24 h-24 text-gray-400 mx-auto mb-2 rotate-45" />
+                      <p className="text-sm text-gray-500">Carregando QR Code...</p>
+                    </div>
+                  )}
                 </div>
                 <div className="text-center mb-4">
-                  <p className="font-bold text-lg text-gray-800">R$ 10,00</p>
+                  <p className="font-bold text-lg text-gray-800">R$ {orderData?.amount ? (orderData.amount / 100).toFixed(2) : '9,90'}</p>
                   <p className="text-sm text-gray-600">Dieta Personalizada</p>
+                  {orderData?.expiresAt && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Expira em: {new Date(orderData.expiresAt).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
                 </div>
                 
-                {/* PIX Copy Button */}
-                <button
-                  onClick={() => {
-                    // Mock PIX code - in real app, this would be the actual PIX code
-                    const pixCode = "00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540510.005802BR5913NUTRI DIETA6009SAO PAULO62140510DIETA123456304B2A2";
-                    navigator.clipboard.writeText(pixCode);
-                    alert("Código PIX copiado!");
-                  }}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
-                >
-                  <Copy className="w-4 h-4 mr-2" />
-                  Copiar PIX Copia e Cola
-                </button>
+                {/* PIX Copy Button - only show if we have order data */}
+                {orderData?.qrCodeUrl && (
+                  <button
+                    onClick={() => {
+                      // In a real implementation, you'd get the PIX code from the backend
+                      const pixCode = "00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540510.005802BR5913NUTRI DIETA6009SAO PAULO62140510DIETA123456304B2A2";
+                      navigator.clipboard.writeText(pixCode);
+                      alert("Código PIX copiado!");
+                    }}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar PIX Copia e Cola
+                  </button>
+                )}
               </div>
 
               <div className="space-y-3">
                 <Button 
                   onClick={handlePaymentConfirm}
+                  disabled={isCheckingPayment}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3"
                 >
-                  Confirmar Pagamento
+                  {isCheckingPayment ? 'Verificando pagamento...' : 'Já realizei o pagamento'}
                 </Button>
                 <Button 
                   onClick={() => setShowPaymentModal(false)}
                   variant="outline" 
                   className="w-full"
+                  disabled={isCheckingPayment}
                 >
                   Cancelar
                 </Button>
