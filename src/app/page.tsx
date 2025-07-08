@@ -31,7 +31,7 @@ const formSchema = z.object({
     "Idade deve ser um número válido"
   ),
   objective: z.string().min(1, "Por favor, selecione qual é o seu objetivo principal"),
-  calories: z.string().min(1, "Por favor, selecione quantas calorias você deseja consumir por dia"),
+  // calories: z.string().min(1, "Por favor, selecione quantas calorias você deseja consumir por dia"),
   // schedule: z.string().min(1, "Por favor, selecione o horário que melhor se adapta à sua rotina"),
   includeCafeManha: z.boolean(),
   includeLancheManha: z.boolean(),
@@ -564,7 +564,7 @@ function DietaPersonalizada({
           height: Number(formData?.height),
           age: Number(formData?.age),
           objective: formData?.objective,
-          caloriasDiarias: Number(formData?.calories),
+          // caloriasDiarias: Number(formData?.calories),
           breakfastItems: formData?.breakfastItems || [],
           morningSnackItems: formData?.morningSnackItems || [],
           lunchItems: formData?.lunchItems || [],
@@ -864,9 +864,9 @@ function DietaPersonalizada({
                   onClick={() => setShowPaymentModal(true)}
                   className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-lg w-full mb-2"
                 >
-                  Desbloquear Dieta Completa
+                  Desbloquear por R$9,90
                   <span>
-                    <ArrowRight className="inline-block w-6 h-6 ml-2" />
+                    <ArrowRight className="inline-block w-8 h-8 ml-2 -mt-2" />
                   </span>
                 </Button>
               ) : (
@@ -1055,7 +1055,7 @@ function App() {
       height: '',
       age: '',
       objective: '',
-      calories: '',
+      // calories: '',
       // schedule: '',
       includeCafeManha: true,
       includeLancheManha: false,
