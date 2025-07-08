@@ -1,5 +1,6 @@
 import { AlertCircle, Check, ChartLine } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useState } from "react";
 
 interface FoodSelectorProps {
   title: string;
@@ -10,6 +11,9 @@ interface FoodSelectorProps {
   onChange: (items: string[]) => void;
   error?: string;
   maxItems?: number;
+  isMinimized?: boolean;
+  onMinimize?: () => void;
+  onExpand?: () => void;
 }
 
 export function FoodSelector({
@@ -21,6 +25,9 @@ export function FoodSelector({
   onChange,
   error,
   maxItems = 5,
+  isMinimized = false,
+  onMinimize,
+  onExpand,
 }: FoodSelectorProps) {
   const handleItemToggle = (value: string) => {
     if (selectedItems.includes(value)) {
@@ -28,6 +35,10 @@ export function FoodSelector({
     } else if (selectedItems.length < maxItems) {
       onChange([...selectedItems, value]);
     }
+  };
+
+  const handleExpand = () => {
+    if (onExpand) onExpand();
   };
 
   const getProgressPercentage = () => {
@@ -122,37 +133,88 @@ export function FoodSelector({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              {foods.map((food) => {
-                const isSelected = selectedItems.includes(food.value);
-                const isDisabled = !isSelected && selectedItems.length >= maxItems;
+            {/* Show minimized view if section is minimized and has selections */}
+            {isMinimized && selectedItems.length > 0 ? (
+              <div className="space-y-3">
+                {/* First selected item - larger display */}
+                <div className="border-2 border-green-500 bg-green-50 rounded-lg p-4 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="text-2xl mr-3">{foods.find(f => f.value === selectedItems[0])?.emoji}</span>
+                    <div>
+                      <p className="font-medium text-green-700">{foods.find(f => f.value === selectedItems[0])?.label}</p>
+                      <p className="text-sm text-green-600">Primeira opção selecionada</p>
+                    </div>
+                  </div>
+                  <div className="bg-green-500 rounded-full p-2">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                </div>
 
-                return (
-                  <button
-                    key={food.value}
-                    onClick={() => handleItemToggle(food.value)}
-                    disabled={isDisabled}
-                    className={`
-                      text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                      ${isSelected
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : isDisabled
-                          ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                      }
-                    `}
-                  >
-                    <p className="text-xl mb-1">{food.emoji}</p>
-                    <span className="font-medium text-center leading-tight">{food.label}</span>
-                    {isSelected && (
-                      <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                {/* Show all other selected options */}
+                {selectedItems.length > 1 && (
+                  <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-4">
+                    <p className="text-gray-600 font-medium mb-3">
+                      Outras opções selecionadas:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedItems.slice(1).map((itemValue, index) => {
+                        const food = foods.find(f => f.value === itemValue);
+                        return (
+                          <div key={index} className="flex items-center bg-white rounded-lg p-2 border border-gray-200">
+                            <span className="text-lg mr-2">{food?.emoji}</span>
+                            <span className="text-sm text-gray-700 font-medium">{food?.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-3 text-center">
+                      Sua dieta incluirá variações com todos os alimentos escolhidos
+                    </p>
+                  </div>
+                )}
+
+                {/* Button to expand selections */}
+                <button
+                  onClick={handleExpand}
+                  className="w-full bg-white border border-gray-300 rounded-lg p-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Modificar seleções ({selectedItems.length}/{maxItems})
+                </button>
+              </div>
+            ) : (
+              /* Show full selection grid */
+              <div className="grid grid-cols-3 gap-3">
+                {foods.map((food) => {
+                  const isSelected = selectedItems.includes(food.value);
+                  const isDisabled = !isSelected && selectedItems.length >= maxItems;
+
+                  return (
+                    <button
+                      key={food.value}
+                      onClick={() => handleItemToggle(food.value)}
+                      disabled={isDisabled}
+                      className={`
+                        text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
+                        ${isSelected
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : isDisabled
+                            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                            : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
+                        }
+                      `}
+                    >
+                      <p className="text-xl mb-1">{food.emoji}</p>
+                      <span className="font-medium text-center leading-tight">{food.label}</span>
+                      {isSelected && (
+                        <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

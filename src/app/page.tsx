@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil } from "lucide-react";
-import { useState } from "react";
+import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useForm, Controller, Control, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FoodSelector } from "@/components/FoodSelector";
-import { PricingPage } from "@/components/PricingPage";
+import { DietCreationFlow } from "@/components/DietCreationFlow";
 import { Badge } from "@/components/ui/badge";
 import { AuthModal } from "@/components/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -189,7 +189,6 @@ function Header() {
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
                   <div className="flex items-center">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">🥦</div>
                     <div className="ml-3">
                       <img
                         src="/logo.png"
@@ -348,7 +347,7 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                 <Input
                   {...field}
                   placeholder="Peso (kg)"
-                  className={`py-8 px-4 text-xl ${errors.weight ? 'border-red-500 focus:border-red-500' : ''}`}
+                  className={`py-8 px-4 text-xl ${errors.weight ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9.]/g, '');
                     field.onChange(value);
@@ -374,7 +373,7 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                 <Input
                   {...field}
                   placeholder="Altura (cm)"
-                  className={`py-8 px-4 text-xl ${errors.height ? 'border-red-500 focus:border-red-500' : ''}`}
+                  className={`py-8 px-4 text-xl ${errors.height ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '');
                     field.onChange(value);
@@ -400,7 +399,7 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                 <Input
                   {...field}
                   placeholder="Idade"
-                  className={`py-8 px-4 text-xl ${errors.age ? 'border-red-500 focus:border-red-500' : ''}`}
+                  className={`py-8 px-4 text-xl ${errors.age ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}
                   onChange={(e) => {
                     const value = e.target.value.replace(/[^0-9]/g, '');
                     field.onChange(value);
@@ -424,7 +423,7 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
               control={control}
               render={({ field }) => (
                 <Select value={field.value || ""} onValueChange={field.onChange}>
-                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.objective ? 'border-red-500 focus:border-red-500' : ''}`}>
+                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.objective ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}>
                     <SelectValue placeholder="Objetivo" />
                   </SelectTrigger>
                   <SelectContent className="my-1">
@@ -451,7 +450,7 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
               control={control}
               render={({ field }) => (
                 <Select value={field.value || ""} onValueChange={field.onChange}>
-                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.calories ? 'border-red-500 focus:border-red-500' : ''}`}>
+                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.calories ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}>
                     <SelectValue placeholder="Calorias diárias 🔥" />
                   </SelectTrigger>
                   <SelectContent className="my-1">
@@ -506,71 +505,340 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
   )
 }
 
-function DietaPersonalizada({ onClick, isSubmitting }: { onClick: () => void, isSubmitting: boolean }) {
+function DietaPersonalizada({ onClick, isSubmitting, currentStep, onUnlock, onPaymentSuccess }: { 
+  onClick: () => void, 
+  isSubmitting: boolean,
+  currentStep: 'form' | 'loading' | 'preview',
+  onUnlock: () => void,
+  onPaymentSuccess: () => void
+}) {
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  const loadingSteps = [
+    { icon: LineChart, title: "Analisando Preferências", description: "Processando seus alimentos favoritos" },
+    { icon: AlertCircle, title: "Calculando Calorias", description: "Ajustando para seu objetivo" },
+    { icon: CheckCircle, title: "Personalizando Dieta", description: "Criando sua dieta ideal" },
+    { icon: Check, title: "Finalizando", description: "Sua dieta está pronta!" }
+  ];
+
+  // Mock diet data for preview
+  const mockDietData = {
+    breakfast: [
+      { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
+      { name: "Café com Leite", quantity: "200ml", calories: 80 },
+      { name: "Banana", quantity: "1 unidade", calories: 90 }
+    ],
+    lunch: [
+      { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+      { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+      { name: "Feijão", quantity: "2 colheres", calories: 140 }
+    ],
+    dinner: [
+      { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+      { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+      { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+    ],
+    totalCalories: 1980
+  };
+
+  // Handle loading progress
+  useEffect(() => {
+    if (currentStep === 'loading') {
+      const interval = setInterval(() => {
+        setLoadingStep((prev) => {
+          const nextStep = prev + 1;
+          if (nextStep < loadingSteps.length) {
+            setCompletedSteps((completed) => [...completed, prev]);
+            return nextStep;
+          } else {
+            setCompletedSteps((completed) => [...completed, prev]);
+            setTimeout(() => onUnlock(), 1000);
+            return prev;
+          }
+        });
+      }, 2000);
+
+      return () => clearInterval(interval);
+    }
+  }, [currentStep, onUnlock]);
+
+  const LoadingStep = ({ icon: Icon, title, description, isActive, isCompleted }: {
+    icon: React.ElementType;
+    title: string;
+    description: string;
+    isActive: boolean;
+    isCompleted: boolean;
+  }) => (
+    <div className={`flex items-center p-4 rounded-lg transition-all duration-500 ${
+      isActive ? 'bg-green-50 border-2 border-green-200' : 
+      isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-gray-50 border-2 border-gray-200'
+    }`}>
+      <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 transition-all duration-500 ${
+        isCompleted ? 'bg-green-500' : isActive ? 'bg-green-200' : 'bg-gray-300'
+      }`}>
+        {isCompleted ? (
+          <Check className="w-6 h-6 text-white" />
+        ) : (
+          <Icon className={`w-6 h-6 ${isActive ? 'text-green-600' : 'text-gray-600'} ${isActive ? 'animate-pulse' : ''}`} />
+        )}
+      </div>
+      <div className="flex-1">
+        <h3 className={`font-semibold ${isCompleted ? 'text-green-800' : isActive ? 'text-green-700' : 'text-gray-700'}`}>
+          {title}
+        </h3>
+        <p className={`text-sm ${isCompleted ? 'text-green-600' : isActive ? 'text-green-600' : 'text-gray-500'}`}>
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+
+  const MealPreviewCard = ({ title, items, showMore = false }: { 
+    title: string; 
+    items: { name: string; quantity: string; calories: number }[];
+    showMore?: boolean;
+  }) => (
+    <div className="bg-gray-50 p-4 rounded-lg">
+      <h4 className="font-semibold text-green-700 mb-2">{title}</h4>
+      <div className="space-y-1">
+        <div className="flex justify-between items-center">
+          <div>
+            <p className="font-medium text-gray-800 text-sm">{items[0]?.name}</p>
+            <p className="text-xs text-gray-600">{items[0]?.quantity}</p>
+          </div>
+          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+            {items[0]?.calories} cal
+          </span>
+        </div>
+        {showMore && (
+          <p className="text-xs text-gray-500 italic">+2 opções adicionais</p>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
       <div className="p-8">
-        <div className="flex items-center">
-          <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
-            <Pencil className="text-green-600 w-5 h-5" />
-          </div>
-          <h1 className="text-xl font-black">Dieta personalizada</h1>
-        </div>
-        <p className="text-md mt-2 mb-4">Sua dieta será montada com base nas suas preferências alimentares e necessidades nutricionais.</p>
-        <Badge className="bg-green-100 text-green-600 mb-4">
-          <CheckCircle className="inline-block w-4 h-4 mr-1" />
-          Por um preço acessível de R$10
-        </Badge>
+        {/* Form Step */}
+        {currentStep === 'form' && (
+          <>
+            <div className="flex items-center">
+              <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
+                <Pencil className="text-green-600 w-5 h-5" />
+              </div>
+              <h1 className="text-xl font-black">Dieta personalizada</h1>
+            </div>
+            <p className="text-md mt-2 mb-4">Sua dieta será montada com base nas suas preferências alimentares e necessidades nutricionais.</p>
+            <Badge className="bg-green-100 text-green-600 mb-4">
+              <CheckCircle className="inline-block w-4 h-4 mr-1" />
+              Por um preço acessível de R$10
+            </Badge>
 
-        <div className="space-y-4 mb-8">
-          <div className="flex items-center">
-            <div className="bg-green-100 rounded-full p-1 mr-3">
-              <Check className="w-4 h-4 text-green-500" />
+            <div className="space-y-4 mb-8">
+              <div className="flex items-center">
+                <div className="bg-green-100 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-green-500" />
+                </div>
+                <span className="text-gray-700">Dieta totalmente personalizada</span>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-green-100 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-green-500" />
+                </div>
+                <span className="text-gray-700">Baseado nas suas preferências</span>
+              </div>
+              <div className="flex items-center">
+                <div className="bg-green-100 rounded-full p-1 mr-3">
+                  <Check className="w-4 h-4 text-green-500" />
+                </div>
+                <span className="text-gray-700">Quantidades de alimentos corretas</span>
+              </div>
             </div>
-            <span className="text-gray-700">Dieta totalmente personalizada</span>
-          </div>
-          <div className="flex items-center">
-            <div className="bg-green-100 rounded-full p-1 mr-3">
-              <Check className="w-4 h-4 text-green-500" />
-            </div>
-            <span className="text-gray-700">Baseado nas suas preferências</span>
-          </div>
-          <div className="flex items-center">
-            <div className="bg-green-100 rounded-full p-1 mr-3">
-              <Check className="w-4 h-4 text-green-500" />
-            </div>
-            <span className="text-gray-700">Quantidades de alimentos corretas</span>
-          </div>
-        </div>
 
-        <div className="text-center">
-          <Button
-            onClick={onClick}
-            disabled={isSubmitting}
-            className="bg-green-500 hover:bg-green-600 text-white font-bold py-7 px-8 rounded-lg transition-colors duration-200 w-full mb-2 text-xl"
-          >
-            {isSubmitting ? "Processando..." : "Montar minha dieta"}
-            <ArrowRight className="inline-block w-12 h-12 text-white" />
-          </Button>
-          <p className="text-sm text-gray-500 mt-4 mb-2">
-            Pagamento único e seguro
-            <Lock className="inline-block ml-1 w-4 h-4 text-gray-500" />
-          </p>
-        </div>
+            <div className="text-center">
+              <Button
+                onClick={onClick}
+                disabled={isSubmitting}
+                className="bg-green-500 hover:bg-green-600 text-white font-bold py-7 px-8 rounded-lg transition-colors duration-200 w-full mb-2 text-xl"
+              >
+                {isSubmitting ? "Processando..." : "Montar minha dieta"}
+                <ArrowRight className="inline-block w-12 h-12 text-white" />
+              </Button>
+              <p className="text-sm text-gray-500 mt-4 mb-2">
+                Pagamento único e seguro
+                <Lock className="inline-block ml-1 w-4 h-4 text-gray-500" />
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* Loading Step */}
+        {currentStep === 'loading' && (
+          <>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <Pencil className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">Criando sua Dieta</h1>
+              <p className="text-gray-600">Aguarde enquanto personalizamos sua alimentação</p>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              {loadingSteps.map((step, index) => (
+                <LoadingStep
+                  key={index}
+                  icon={step.icon}
+                  title={step.title}
+                  description={step.description}
+                  isActive={index === loadingStep}
+                  isCompleted={completedSteps.includes(index)}
+                />
+              ))}
+            </div>
+
+            <div className="mt-6">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${((loadingStep + 1) / loadingSteps.length) * 100}%` }}
+                />
+              </div>
+              <p className="text-center text-sm text-gray-600 mt-2">
+                {Math.round(((loadingStep + 1) / loadingSteps.length) * 100)}% concluído
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* Preview Step */}
+        {currentStep === 'preview' && (
+          <>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Está Pronta!</h1>
+              <p className="text-gray-600">Veja um preview do que preparamos para você</p>
+            </div>
+
+            <div className="bg-green-50 p-4 rounded-lg mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-800">Plano Nutricional Personalizado</h3>
+                <Badge className="bg-green-100 text-green-800">
+                  {mockDietData.totalCalories} cal/dia
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <MealPreviewCard title="Café da Manhã" items={mockDietData.breakfast} showMore={true} />
+                <MealPreviewCard title="Almoço" items={mockDietData.lunch} showMore={true} />
+                <MealPreviewCard title="Jantar" items={mockDietData.dinner} showMore={true} />
+              </div>
+
+              <div className="bg-white/50 p-3 rounded-lg">
+                <div className="flex items-center text-gray-600">
+                  <Lock className="w-4 h-4 mr-2" />
+                  <span className="text-sm">Desbloquear para ver dieta completa com horários e quantidades detalhadas</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center">
+              <Button
+                onClick={() => setShowPaymentModal(true)}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-lg w-full mb-2"
+              >
+                Desbloquear Dieta Completa
+                <span>
+                  <ArrowRight className="inline-block w-6 h-6 ml-2" />
+                </span>
+              </Button>
+              <p className="text-sm text-gray-500 mt-4">
+                Pagamento único e seguro <Lock className="inline w-4 h-4 ml-1" />
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* Payment Modal */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ArrowRight className="w-8 h-8 text-blue-600 rotate-45" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-2">Pagamento PIX</h2>
+                <p className="text-gray-600">Escaneie o QR Code para pagar</p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <div className="w-48 h-48 bg-white border-2 border-gray-200 rounded-lg mx-auto flex items-center justify-center mb-4">
+                  <div className="text-center">
+                    <ArrowRight className="w-24 h-24 text-gray-400 mx-auto mb-2 rotate-45" />
+                    <p className="text-sm text-gray-500">QR Code PIX</p>
+                  </div>
+                </div>
+                <div className="text-center mb-4">
+                  <p className="font-bold text-lg text-gray-800">R$ 10,00</p>
+                  <p className="text-sm text-gray-600">Dieta Personalizada</p>
+                </div>
+                
+                {/* PIX Copy Button */}
+                <button
+                  onClick={() => {
+                    // Mock PIX code - in real app, this would be the actual PIX code
+                    const pixCode = "00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540510.005802BR5913NUTRI DIETA6009SAO PAULO62140510DIETA123456304B2A2";
+                    navigator.clipboard.writeText(pixCode);
+                    alert("Código PIX copiado!");
+                  }}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar PIX Copia e Cola
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => {
+                    setShowPaymentModal(false);
+                    onPaymentSuccess();
+                  }}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3"
+                >
+                  Confirmar Pagamento
+                </Button>
+                <Button 
+                  onClick={() => setShowPaymentModal(false)}
+                  variant="outline" 
+                  className="w-full"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function App() {
-  const [showPricing, setShowPricing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mealValidationErrors, setMealValidationErrors] = useState<Record<string, string>>({});
+  const [dietStep, setDietStep] = useState<'form' | 'loading' | 'preview'>('form');
+  const [activeMealSection, setActiveMealSection] = useState<string | null>(null);
 
   const {
     control,
     watch,
     setValue,
+    handleSubmit,
     formState: { errors }
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -594,6 +862,18 @@ function App() {
       dinnerItems: [],
     }
   });
+
+  const handleMealSectionFocus = (sectionName: string) => {
+    setActiveMealSection(sectionName);
+  };
+
+  const handleMealSectionExpand = (sectionName: string) => {
+    setActiveMealSection(sectionName);
+  };
+
+  const shouldMinimize = (sectionName: string) => {
+    return activeMealSection !== null && activeMealSection !== sectionName;
+  };
 
   const onSubmit = async (data: FormData) => {
     // Clear previous validation errors
@@ -623,30 +903,34 @@ function App() {
 
     if (Object.keys(newValidationErrors).length > 0) {
       setMealValidationErrors(newValidationErrors);
+      // Scroll to top to show validation errors
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     setIsSubmitting(true);
     console.log('Form data:', data);
+    
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSubmitting(false);
-    setShowPricing(true);
+    setDietStep('loading');
   };
 
-  const handlePurchase = (planType: string) => {
-    console.log("Purchase plan:", planType);
-    // Implement purchase logic here
+  const onInvalidSubmit = () => {
+    // Scroll to top when form validation fails
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (showPricing) {
-    return (
-      <PricingPage
-        onBack={() => setShowPricing(false)}
-        onPurchase={handlePurchase}
-      />
-    );
-  }
+  const handleUnlock = () => {
+    setDietStep('preview');
+  };
+
+  const handlePaymentSuccess = () => {
+    alert('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
+    // Reset to form for demo purposes
+    setDietStep('form');
+  };
 
   return (
     <main className="bg-[#F9FAFB]">
@@ -659,59 +943,99 @@ function App() {
         <FoodSelector
           title="Café da manhã"
           isIncluded={watch("includeCafeManha") || false}
-          onToggleInclude={(included) => setValue("includeCafeManha", included)}
+          onToggleInclude={(included) => {
+            setValue("includeCafeManha", included);
+            if (included) handleMealSectionFocus("breakfast");
+          }}
           foods={foodData.breakfast}
           selectedItems={watch("breakfastItems") || []}
-          onChange={(items) => setValue("breakfastItems", items)}
+          onChange={(items) => {
+            setValue("breakfastItems", items);
+            if (items.length > 0) handleMealSectionFocus("breakfast");
+          }}
           error={mealValidationErrors.breakfast}
+          isMinimized={shouldMinimize("breakfast")}
+          onExpand={() => handleMealSectionExpand("breakfast")}
         />
 
         <FoodSelector
           title="Lanche da manhã"
           isIncluded={watch("includeLancheManha") || false}
-          onToggleInclude={(included) => setValue("includeLancheManha", included)}
+          onToggleInclude={(included) => {
+            setValue("includeLancheManha", included);
+            if (included) handleMealSectionFocus("morningSnack");
+          }}
           foods={foodData.morningSnack}
           selectedItems={watch("morningSnackItems") || []}
-          onChange={(items) => setValue("morningSnackItems", items)}
+          onChange={(items) => {
+            setValue("morningSnackItems", items);
+            if (items.length > 0) handleMealSectionFocus("morningSnack");
+          }}
           error={mealValidationErrors.morningSnack}
+          isMinimized={shouldMinimize("morningSnack")}
+          onExpand={() => handleMealSectionExpand("morningSnack")}
         />
 
         <FoodSelector
           title="Almoço"
           isIncluded={watch("includeAlmoco") || false}
-          onToggleInclude={(included) => setValue("includeAlmoco", included)}
+          onToggleInclude={(included) => {
+            setValue("includeAlmoco", included);
+            if (included) handleMealSectionFocus("lunch");
+          }}
           foods={foodData.lunch}
           selectedItems={watch("lunchItems") || []}
-          onChange={(items) => setValue("lunchItems", items)}
+          onChange={(items) => {
+            setValue("lunchItems", items);
+            if (items.length > 0) handleMealSectionFocus("lunch");
+          }}
           error={mealValidationErrors.lunch}
+          isMinimized={shouldMinimize("lunch")}
+          onExpand={() => handleMealSectionExpand("lunch")}
         />
 
         <FoodSelector
           title="Lanche da tarde"
           isIncluded={watch("includeLancheTarde") || false}
-          onToggleInclude={(included) => setValue("includeLancheTarde", included)}
+          onToggleInclude={(included) => {
+            setValue("includeLancheTarde", included);
+            if (included) handleMealSectionFocus("afternoonSnack");
+          }}
           foods={foodData.afternoonSnack}
           selectedItems={watch("afternoonSnackItems") || []}
-          onChange={(items) => setValue("afternoonSnackItems", items)}
+          onChange={(items) => {
+            setValue("afternoonSnackItems", items);
+            if (items.length > 0) handleMealSectionFocus("afternoonSnack");
+          }}
           error={mealValidationErrors.afternoonSnack}
+          isMinimized={shouldMinimize("afternoonSnack")}
+          onExpand={() => handleMealSectionExpand("afternoonSnack")}
         />
 
         <FoodSelector
           title="Jantar"
           isIncluded={watch("includeJantar") || false}
-          onToggleInclude={(included) => setValue("includeJantar", included)}
+          onToggleInclude={(included) => {
+            setValue("includeJantar", included);
+            if (included) handleMealSectionFocus("dinner");
+          }}
           foods={foodData.dinner}
           selectedItems={watch("dinnerItems") || []}
-          onChange={(items) => setValue("dinnerItems", items)}
+          onChange={(items) => {
+            setValue("dinnerItems", items);
+            if (items.length > 0) handleMealSectionFocus("dinner");
+          }}
           error={mealValidationErrors.dinner}
+          isMinimized={shouldMinimize("dinner")}
+          onExpand={() => handleMealSectionExpand("dinner")}
         />
 
         <DietaPersonalizada
-          onClick={() => {
-            const data = watch();
-            onSubmit(data);
-          }}
+          onClick={handleSubmit(onSubmit, onInvalidSubmit)}
           isSubmitting={isSubmitting}
+          currentStep={dietStep}
+          onUnlock={handleUnlock}
+          onPaymentSuccess={handlePaymentSuccess}
         />
       </div>
     </main>

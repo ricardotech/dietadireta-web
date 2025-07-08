@@ -28,7 +28,6 @@ function Header() {
         <header className="p-4 flex border-b border-[#F0F0F0] bg-white fixed w-full z-50 h-[75px]">
             <div className="max-w-7xl mx-auto flex items-center justify-between w-full">
                 <div className="flex items-center">
-                    <h1 className="text-4xl font-bold">🥦</h1>
                     <div className="ml-4">
                         <img
                             src="/logo.png"
@@ -68,7 +67,6 @@ function Header() {
                                 {/* Header */}
                                 <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
                                     <div className="flex items-center">
-                                        <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">🥦</div>
                                         <div className="ml-3">
                                             <img
                                                 src="/logo.png"
@@ -151,7 +149,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
         planId: '',
         planName: ''
     });
-    
+
     const handlePlanSelect = (planId: string, planName: string) => {
         setAuthModal({ isOpen: true, planId, planName });
     };
@@ -345,7 +343,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                             Milhares de pessoas já transformaram suas vidas com nossas dietas personalizadas
                         </p>
                     </div>
-                    
+
                     <div className="relative">
                         <Swiper
                             modules={[Navigation, Pagination, Autoplay]}
@@ -380,17 +378,17 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                                         <div className="absolute top-0 right-0 w-20 h-20 bg-green-50 rounded-bl-full flex items-center justify-center">
                                             <Quote className="w-8 h-8 text-green-500 rotate-12" />
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-1 mb-6">
                                             {[...Array(testimonial.rating)].map((_, i) => (
                                                 <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                                             ))}
                                         </div>
-                                        
+
                                         <blockquote className="text-gray-700 text-lg leading-relaxed mb-6 flex-1 italic">
                                             &ldquo;{testimonial.text}&rdquo;
                                         </blockquote>
-                                        
+
                                         <div className="border-t border-gray-100 pt-6 mt-auto">
                                             <div className="flex items-center justify-between">
                                                 <div>
@@ -406,7 +404,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                                 </SwiperSlide>
                             ))}
                         </Swiper>
-                        
+
                         {/* Custom Navigation Buttons */}
                         <div className="swiper-button-prev-custom absolute left-4 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white rounded-full shadow-lg border border-gray-200 flex items-center justify-center cursor-pointer hover:bg-green-50 transition-colors">
                             <ArrowRight className="w-5 h-5 text-gray-600 rotate-180" />
@@ -416,7 +414,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                         </div>
                     </div>
                 </div>
-                
+
                 {/* Custom Swiper Styles */}
                 <style jsx>{`
                     .testimonials-swiper .swiper-pagination {
@@ -454,7 +452,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                             Se não ficar satisfeito com sua dieta personalizada, devolvemos 100% do seu dinheiro
                         </p>
                     </div>
-                    
+
                     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 max-w-4xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
                             <div className="flex flex-col items-center">
@@ -464,7 +462,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">Pagamento Seguro</h3>
                                 <p className="text-gray-600">Seus dados estão protegidos com criptografia SSL</p>
                             </div>
-                            
+
                             <div className="flex flex-col items-center">
                                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                                     <Clock className="w-8 h-8 text-green-600" />
@@ -472,7 +470,7 @@ export function PricingPage({ onBack, onPurchase }: PricingPageProps) {
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">Entrega Imediata</h3>
                                 <p className="text-gray-600">Receba sua dieta personalizada em poucos minutos</p>
                             </div>
-                            
+
                             <div className="flex flex-col items-center">
                                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                                     <Zap className="w-8 h-8 text-green-600" />

@@ -22,13 +22,13 @@ const geistMono = Geist_Mono({
 ------------------------------------------------------------*/
 export const metadata: Metadata = {
   metadataBase: new URL("https://dietabox.com"),   // absolute base for URLs
-  title: "🥦 Dieta Box | O maior site de dietas do Brasil",
+  title: "Dieta Box | O maior site de dietas do Brasil",
   description:
     "O site Dieta Box foi considerado o maior e melhor site de dietas do Brasil, com mais de 5 milhões de receitas ao todo.",
   openGraph: {
     type: "website",
     url: "https://dietabox.com",
-    title: "🥦 Dieta Box | O maior site de dietas do Brasil",
+    title: "Dieta Box | O maior site de dietas do Brasil",
     description:
       "O site Dieta Box foi considerado o maior e melhor site de dietas do Brasil, com mais de 5 milhões de receitas ao todo.",
     images: [
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "🥦 Dieta Box | O maior site de dietas do Brasil",
+    title: "Dieta Box | O maior site de dietas do Brasil",
     description:
       "O site Dieta Box foi considerado o maior e melhor site de dietas do Brasil, com mais de 5 milhões de receitas ao todo.",
     images: ["/thumbnail.jpg"],
