@@ -862,9 +862,9 @@ function DietaPersonalizada({
               {!isPaymentConfirmed ? (
                 <Button
                   onClick={() => setShowPaymentModal(true)}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-lg w-full mb-2"
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-md md:text-lg w-full mb-2"
                 >
-                  Desbloquear por R$9,90
+                  Desbloquear por apenas R$9,90
                   <span>
                     <ArrowRight className="inline-block w-8 h-8 ml-2 -mt-2" />
                   </span>
