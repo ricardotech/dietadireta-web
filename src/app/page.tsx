@@ -299,21 +299,21 @@ function Header() {
 
 function MedidasCorporais({ control, errors }: { control: Control<FormData>, errors: FieldErrors<FormData> }) {
   const objectives = [
-    { value: "emagrecer", label: "Emagrecer" },
-    { value: "emagrecer_massa", label: "Emagrecer + Massa" },
-    { value: "definicao_ganho", label: "Definicao Muscular + Ganhar Massa" },
-    { value: "ganhar_massa", label: "Ganhar Massa Muscular" },
+    { value: "emagrecer", emoji: "📉", label: "Emagrecer" },
+    { value: "emagrecer_massa", emoji: "💪", label: "Emagrecer + Massa" },
+    { value: "definicao_ganho", emoji: "🏋️", label: "Definicao Muscular + Ganhar Massa" },
+    { value: "ganhar_massa", emoji: "💪", label: "Ganhar Massa Muscular" },
   ];
 
   const calories = [
-    { value: "0", label: "Não sei dizer" },
-    { value: "1200", label: "1200 kcal" },
-    { value: "1500", label: "1500 kcal" },
-    { value: "1800", label: "1800 kcal" },
-    { value: "2000", label: "2000 kcal" },
-    { value: "2200", label: "2200 kcal" },
-    { value: "2500", label: "2500 kcal" },
-    { value: "3000", label: "3000 kcal" },
+    { value: "0", emoji: "❓", label: "Não sei dizer" },
+    { value: "1200", emoji: "🔥", label: "1200 kcal" },
+    { value: "1500", emoji: "🔥", label: "1500 kcal" },
+    { value: "1800", emoji: "🔥", label: "1800 kcal" },
+    { value: "2000", emoji: "🔥", label: "2000 kcal" },
+    { value: "2200", emoji: "🔥", label: "2200 kcal" },
+    { value: "2500", emoji: "🔥", label: "2500 kcal" },
+    { value: "3000", emoji: "🔥", label: "3000 kcal" },
   ];
 
   // const schedules = [
@@ -423,18 +423,26 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
               name="objective"
               control={control}
               render={({ field }) => (
-                <Select value={field.value || ""} onValueChange={field.onChange}>
-                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.objective ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}>
-                    <SelectValue placeholder="Objetivo" />
-                  </SelectTrigger>
-                  <SelectContent className="my-1">
-                    {objectives.map((o) => (
-                      <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
-                        {o.label}
-                      </SelectItem>
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-800">Seu objetivo</label>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {objectives.map((objective) => (
+                      <button
+                        key={objective.value}
+                        type="button"
+                        onClick={() => field.onChange(objective.value)}
+                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                          field.value === objective.value
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-2">{objective.emoji}</div>
+                        <div className="font-medium text-sm">{objective.label}</div>
+                      </button>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                </div>
               )}
             />
             {errors.objective && (
@@ -445,23 +453,31 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
             )}
           </div>
 
-          <div>
+          {/* <div>
             <Controller
               name="calories"
               control={control}
               render={({ field }) => (
-                <Select value={field.value || ""} onValueChange={field.onChange}>
-                  <SelectTrigger className={`w-full text-xl py-8 px-4 ${errors.calories ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}>
-                    <SelectValue placeholder="Calorias diárias 🔥" />
-                  </SelectTrigger>
-                  <SelectContent className="my-1">
-                    {calories.map((o) => (
-                      <SelectItem key={o.value} value={o.value} className="text-xl py-4 px-6">
-                        {o.label}
-                      </SelectItem>
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-800">Sua meta de Calorias diárias</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {calories.map((calorie) => (
+                      <button
+                        key={calorie.value}
+                        type="button"
+                        onClick={() => field.onChange(calorie.value)}
+                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${
+                          field.value === calorie.value
+                            ? 'border-green-500 bg-green-50 text-green-700'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="text-2xl mb-2">{calorie.emoji}</div>
+                        <div className="font-medium text-sm">{calorie.label}</div>
+                      </button>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </div>
+                </div>
               )}
             />
             {errors.calories && (
@@ -470,7 +486,7 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                 {errors.calories.message}
               </p>
             )}
-          </div>
+          </div> */}
 
           {/* 
           <div>
@@ -554,11 +570,11 @@ function DietaPersonalizada({
           lunchItems: formData?.lunchItems || [],
           afternoonSnackItems: formData?.afternoonSnackItems || [],
           dinnerItems: formData?.dinnerItems || [],
-          includeCafeManha: formData?.includeCafeManha,
+          includeCafeManha: true,
           includeLancheManha: formData?.includeLancheManha,
-          includeAlmoco: formData?.includeAlmoco,
+          includeAlmoco: true,
           includeLancheTarde: formData?.includeLancheTarde,
-          includeJantar: formData?.includeJantar,
+          includeJantar: true,
         }),
       });
 
@@ -1070,17 +1086,17 @@ function App() {
     // Clear previous validation errors
     setMealValidationErrors({});
 
-    // Custom validation for meal selections - only main meals are required
+    // Custom validation for meal selections - required meals are always validated
     const newValidationErrors: Record<string, string> = {};
 
-    // Only validate meals that are included (toggled on)
-    if (data.includeCafeManha && data.breakfastItems.length < 3) {
+    // Required meals are always validated
+    if (data.breakfastItems.length < 3) {
       newValidationErrors.breakfast = 'Selecione pelo menos 3 alimentos para o café da manhã';
     }
-    if (data.includeAlmoco && data.lunchItems.length < 3) {
+    if (data.lunchItems.length < 3) {
       newValidationErrors.lunch = 'Selecione pelo menos 3 alimentos para o almoço';
     }
-    if (data.includeJantar && data.dinnerItems.length < 3) {
+    if (data.dinnerItems.length < 3) {
       newValidationErrors.dinner = 'Selecione pelo menos 3 alimentos para o jantar';
     }
 
@@ -1136,11 +1152,7 @@ function App() {
 
         <FoodSelector
           title="Café da manhã"
-          isIncluded={watch("includeCafeManha") || false}
-          onToggleInclude={(included) => {
-            setValue("includeCafeManha", included);
-            if (included) handleMealSectionFocus("breakfast");
-          }}
+          isIncluded={true}
           foods={foodData.breakfast}
           selectedItems={watch("breakfastItems") || []}
           onChange={(items) => {
@@ -1150,6 +1162,7 @@ function App() {
           error={mealValidationErrors.breakfast}
           isMinimized={shouldMinimize("breakfast")}
           onExpand={() => handleMealSectionExpand("breakfast")}
+          isRequired={true}
         />
 
         <FoodSelector
@@ -1172,11 +1185,7 @@ function App() {
 
         <FoodSelector
           title="Almoço"
-          isIncluded={watch("includeAlmoco") || false}
-          onToggleInclude={(included) => {
-            setValue("includeAlmoco", included);
-            if (included) handleMealSectionFocus("lunch");
-          }}
+          isIncluded={true}
           foods={foodData.lunch}
           selectedItems={watch("lunchItems") || []}
           onChange={(items) => {
@@ -1186,6 +1195,7 @@ function App() {
           error={mealValidationErrors.lunch}
           isMinimized={shouldMinimize("lunch")}
           onExpand={() => handleMealSectionExpand("lunch")}
+          isRequired={true}
         />
 
         <FoodSelector
@@ -1208,11 +1218,7 @@ function App() {
 
         <FoodSelector
           title="Jantar"
-          isIncluded={watch("includeJantar") || false}
-          onToggleInclude={(included) => {
-            setValue("includeJantar", included);
-            if (included) handleMealSectionFocus("dinner");
-          }}
+          isIncluded={true}
           foods={foodData.dinner}
           selectedItems={watch("dinnerItems") || []}
           onChange={(items) => {
@@ -1222,6 +1228,7 @@ function App() {
           error={mealValidationErrors.dinner}
           isMinimized={shouldMinimize("dinner")}
           onExpand={() => handleMealSectionExpand("dinner")}
+          isRequired={true}
         />
 
         <DietaPersonalizada

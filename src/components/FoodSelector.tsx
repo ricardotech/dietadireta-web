@@ -14,6 +14,7 @@ interface FoodSelectorProps {
   isMinimized?: boolean;
   onMinimize?: () => void;
   onExpand?: () => void;
+  isRequired?: boolean;
 }
 
 export function FoodSelector({
@@ -28,6 +29,7 @@ export function FoodSelector({
   isMinimized = false,
   onMinimize,
   onExpand,
+  isRequired = false,
 }: FoodSelectorProps) {
   const handleItemToggle = (value: string) => {
     if (selectedItems.includes(value)) {
@@ -58,7 +60,7 @@ export function FoodSelector({
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl">
       <div className="shadow rounded-xl">
         {/* Error banner */}
-        {error && isIncluded && (
+        {error && (isIncluded || isRequired) && (
           <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -83,39 +85,40 @@ export function FoodSelector({
             </div>
             <h1 className="text-xl font-black">{title}</h1>
           </div>
-          <p className="text-md mt-2">Selecione se deseja incluir &ldquo;{title.toLowerCase()}&rdquo; na sua dieta</p>
+          <p className="text-md mt-2">Selecione os alimentos que você costuma consumir</p>
         </div>
 
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-lg font-medium text-gray-700">
-                {isIncluded ? 'Incluir' : 'Não incluir'} {title.toLowerCase()}
-              </span>
-              {isIncluded && (
-                <div className="bg-green-100 rounded-full p-1">
-                  <Check className="w-4 h-4 text-green-600" />
-                </div>
-              )}
+        {!isRequired && (
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="text-lg font-medium text-gray-700">
+                  {isIncluded ? 'Incluir' : 'Não incluir'} {title.toLowerCase()}
+                </span>
+                {isIncluded && (
+                  <div className="bg-green-100 rounded-full p-1">
+                    <Check className="w-4 h-4 text-green-600" />
+                  </div>
+                )}
+              </div>
+              <Switch
+                checked={isIncluded}
+                onCheckedChange={onToggleInclude}
+                className="data-[state=checked]:bg-green-500"
+              />
             </div>
-            <Switch
-              checked={isIncluded}
-              onCheckedChange={onToggleInclude}
-              className="data-[state=checked]:bg-green-500"
-            />
+            <p className="text-sm text-gray-500 mt-2">
+              {isIncluded ? 'Esta refeição será incluída na sua dieta personalizada' : 'Esta refeição não será incluída na sua dieta'}
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mt-2">
-            {isIncluded ? 'Esta refeição será incluída na sua dieta personalizada' : 'Esta refeição não será incluída na sua dieta'}
-          </p>
-        </div>
+        )}
 
-        {/* Food Selection Grid - Only show when toggle is active */}
-        {isIncluded && (
+        {/* Food Selection Grid - Show when toggle is active OR when it's required */}
+        {(isIncluded || isRequired) && (
           <div className="border-t border-[#F0F0F0] p-4">
             <div className="mb-4">
-              <p className="text-md font-medium mb-2">Selecione os alimentos que você costuma consumir</p>
               {/* Progress Bar and Counter */}
-              <div className="mt-4">
+              <div className="mt-0">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">
                     {selectedItems.length} de {maxItems} selecionados
