@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy, Download } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, Controller, Control, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,7 @@ import { DietCreationFlow } from "@/components/DietCreationFlow";
 import { Badge } from "@/components/ui/badge";
 import { AuthModal } from "@/components/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePDF } from 'react-to-pdf';
 
 // Form validation schema
 const formSchema = z.object({
@@ -505,16 +506,27 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
   )
 }
 
-function DietaPersonalizada({ onClick, isSubmitting, currentStep, onUnlock, onPaymentSuccess }: { 
+function DietaPersonalizada({ 
+  onClick, 
+  isSubmitting, 
+  currentStep, 
+  onUnlock, 
+  onPaymentSuccess, 
+  formData 
+}: { 
   onClick: () => void, 
   isSubmitting: boolean,
   currentStep: 'form' | 'loading' | 'preview',
   onUnlock: () => void,
-  onPaymentSuccess: () => void
+  onPaymentSuccess: () => void,
+  formData?: FormData
 }) {
   const [loadingStep, setLoadingStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [dietData, setDietData] = useState<any>(null);
+  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
+  const { toPDF, targetRef } = usePDF({ filename: 'minha-dieta-personalizada.pdf' });
 
   const loadingSteps = [
     { icon: LineChart, title: "Analisando Preferências", description: "Processando seus alimentos favoritos" },
@@ -523,27 +535,68 @@ function DietaPersonalizada({ onClick, isSubmitting, currentStep, onUnlock, onPa
     { icon: Check, title: "Finalizando", description: "Sua dieta está pronta!" }
   ];
 
-  // Mock diet data for preview
-  const mockDietData = {
-    breakfast: [
-      { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
-      { name: "Café com Leite", quantity: "200ml", calories: 80 },
-      { name: "Banana", quantity: "1 unidade", calories: 90 }
-    ],
-    lunch: [
-      { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-      { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-      { name: "Feijão", quantity: "2 colheres", calories: 140 }
-    ],
-    dinner: [
-      { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-      { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-      { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-    ],
-    totalCalories: 1980
+  // API call to generate diet
+  const generateDiet = async () => {
+    try {
+      const response = await fetch('/api/prompt', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          weight: Number(formData?.weight),
+          height: Number(formData?.height),
+          age: Number(formData?.age),
+          objective: formData?.objective,
+          caloriasDiarias: Number(formData?.calories),
+          breakfastItems: formData?.breakfastItems || [],
+          morningSnackItems: formData?.morningSnackItems || [],
+          lunchItems: formData?.lunchItems || [],
+          afternoonSnackItems: formData?.afternoonSnackItems || [],
+          dinnerItems: formData?.dinnerItems || [],
+          includeCafeManha: formData?.includeCafeManha,
+          includeLancheManha: formData?.includeLancheManha,
+          includeAlmoco: formData?.includeAlmoco,
+          includeLancheTarde: formData?.includeLancheTarde,
+          includeJantar: formData?.includeJantar,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate diet');
+      }
+
+      const data = await response.json();
+      setDietData(data);
+      return data;
+    } catch (error) {
+      console.error('Error generating diet:', error);
+      // Fallback to mock data if API fails
+      const mockData = {
+        breakfast: [
+          { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
+          { name: "Café com Leite", quantity: "200ml", calories: 80 },
+          { name: "Banana", quantity: "1 unidade", calories: 90 }
+        ],
+        lunch: [
+          { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+          { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+          { name: "Feijão", quantity: "2 colheres", calories: 140 }
+        ],
+        dinner: [
+          { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+          { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+          { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+        ],
+        totalCalories: 1980,
+        notes: "Lembre-se de beber pelo menos 2 litros de água por dia e fazer as refeições nos horários indicados."
+      };
+      setDietData(mockData);
+      return mockData;
+    }
   };
 
-  // Handle loading progress
+  // Handle loading progress with increased time
   useEffect(() => {
     if (currentStep === 'loading') {
       const interval = setInterval(() => {
@@ -554,15 +607,25 @@ function DietaPersonalizada({ onClick, isSubmitting, currentStep, onUnlock, onPa
             return nextStep;
           } else {
             setCompletedSteps((completed) => [...completed, prev]);
-            setTimeout(() => onUnlock(), 1000);
+            // Generate diet after loading completes
+            setTimeout(async () => {
+              await generateDiet();
+              onUnlock();
+            }, 1500);
             return prev;
           }
         });
-      }, 2000);
+      }, 3000); // Increased from 2000 to 3000ms
 
       return () => clearInterval(interval);
     }
   }, [currentStep, onUnlock]);
+
+  const handlePaymentConfirm = () => {
+    setIsPaymentConfirmed(true);
+    setShowPaymentModal(false);
+    onPaymentSuccess();
+  };
 
   const LoadingStep = ({ icon: Icon, title, description, isActive, isCompleted }: {
     icon: React.ElementType;
@@ -595,29 +658,45 @@ function DietaPersonalizada({ onClick, isSubmitting, currentStep, onUnlock, onPa
     </div>
   );
 
-  const MealPreviewCard = ({ title, items, showMore = false }: { 
+  const MealPreviewCard = ({ title, items, showMore = false, isBlurred = false }: { 
     title: string; 
     items: { name: string; quantity: string; calories: number }[];
     showMore?: boolean;
+    isBlurred?: boolean;
   }) => (
-    <div className="bg-gray-50 p-4 rounded-lg">
-      <h4 className="font-semibold text-green-700 mb-2">{title}</h4>
-      <div className="space-y-1">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="font-medium text-gray-800 text-sm">{items[0]?.name}</p>
-            <p className="text-xs text-gray-600">{items[0]?.quantity}</p>
+    <div className={`bg-gray-50 p-4 rounded-lg relative ${isBlurred ? 'overflow-hidden' : ''}`}>
+      <div className={isBlurred ? 'filter blur-sm' : ''}>
+        <h4 className="font-semibold text-green-700 mb-2">{title}</h4>
+        <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="font-medium text-gray-800 text-sm">{items[0]?.name}</p>
+              <p className="text-xs text-gray-600">{items[0]?.quantity}</p>
+            </div>
+            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+              {items[0]?.calories} cal
+            </span>
           </div>
-          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-            {items[0]?.calories} cal
-          </span>
+          {showMore && (
+            <p className="text-xs text-gray-500 italic">+{items.length - 1} opções adicionais</p>
+          )}
         </div>
-        {showMore && (
-          <p className="text-xs text-gray-500 italic">+2 opções adicionais</p>
-        )}
       </div>
+      {isBlurred && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-lg">
+          <Lock className="w-6 h-6 text-gray-400" />
+        </div>
+      )}
     </div>
   );
+
+  // Get the diet data to display (either real data or fallback)
+  const displayDietData = dietData || {
+    breakfast: [{ name: "Carregando...", quantity: "...", calories: 0 }],
+    lunch: [{ name: "Carregando...", quantity: "...", calories: 0 }],
+    dinner: [{ name: "Carregando...", quantity: "...", calories: 0 }],
+    totalCalories: 0
+  };
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
@@ -728,37 +807,151 @@ function DietaPersonalizada({ onClick, isSubmitting, currentStep, onUnlock, onPa
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-gray-800">Plano Nutricional Personalizado</h3>
                 <Badge className="bg-green-100 text-green-800">
-                  {mockDietData.totalCalories} cal/dia
+                  {displayDietData.totalCalories} cal/dia
                 </Badge>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <MealPreviewCard title="Café da Manhã" items={mockDietData.breakfast} showMore={true} />
-                <MealPreviewCard title="Almoço" items={mockDietData.lunch} showMore={true} />
-                <MealPreviewCard title="Jantar" items={mockDietData.dinner} showMore={true} />
+                <MealPreviewCard 
+                  title="Café da Manhã" 
+                  items={displayDietData.breakfast} 
+                  showMore={true} 
+                  isBlurred={!isPaymentConfirmed}
+                />
+                <MealPreviewCard 
+                  title="Almoço" 
+                  items={displayDietData.lunch} 
+                  showMore={true} 
+                  isBlurred={!isPaymentConfirmed}
+                />
+                <MealPreviewCard 
+                  title="Jantar" 
+                  items={displayDietData.dinner} 
+                  showMore={true} 
+                  isBlurred={!isPaymentConfirmed}
+                />
               </div>
 
-              <div className="bg-white/50 p-3 rounded-lg">
-                <div className="flex items-center text-gray-600">
-                  <Lock className="w-4 h-4 mr-2" />
-                  <span className="text-sm">Desbloquear para ver dieta completa com horários e quantidades detalhadas</span>
+              {!isPaymentConfirmed && (
+                <div className="bg-white/50 p-3 rounded-lg">
+                  <div className="flex items-center text-gray-600">
+                    <Lock className="w-4 h-4 mr-2" />
+                    <span className="text-sm">Desbloquear para ver dieta completa com horários e quantidades detalhadas</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="text-center">
-              <Button
-                onClick={() => setShowPaymentModal(true)}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-lg w-full mb-2"
-              >
-                Desbloquear Dieta Completa
-                <span>
-                  <ArrowRight className="inline-block w-6 h-6 ml-2" />
-                </span>
-              </Button>
-              <p className="text-sm text-gray-500 mt-4">
-                Pagamento único e seguro <Lock className="inline w-4 h-4 ml-1" />
-              </p>
+              {!isPaymentConfirmed ? (
+                <Button
+                  onClick={() => setShowPaymentModal(true)}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-lg w-full mb-2"
+                >
+                  Desbloquear Dieta Completa
+                  <span>
+                    <ArrowRight className="inline-block w-6 h-6 ml-2" />
+                  </span>
+                </Button>
+              ) : (
+                <div className="space-y-4">
+                  {/* Full Diet Display */}
+                  <div ref={targetRef} className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div className="text-center mb-6">
+                      <h2 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Personalizada</h2>
+                      <p className="text-gray-600">Total: {displayDietData.totalCalories} calorias por dia</p>
+                    </div>
+                    
+                    {/* Complete Meal Sections */}
+                    <div className="space-y-6">
+                      {displayDietData.breakfast && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-green-700 mb-3">Café da Manhã</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {displayDietData.breakfast.map((item: any, index: number) => (
+                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium text-gray-800">{item.name}</p>
+                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                                  </div>
+                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    {item.calories} cal
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {displayDietData.lunch && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-green-700 mb-3">Almoço</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {displayDietData.lunch.map((item: any, index: number) => (
+                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium text-gray-800">{item.name}</p>
+                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                                  </div>
+                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    {item.calories} cal
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {displayDietData.dinner && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-green-700 mb-3">Jantar</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {displayDietData.dinner.map((item: any, index: number) => (
+                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium text-gray-800">{item.name}</p>
+                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                                  </div>
+                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    {item.calories} cal
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {displayDietData.notes && (
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <h3 className="text-lg font-semibold text-blue-700 mb-2">Dicas Importantes</h3>
+                          <p className="text-gray-700">{displayDietData.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Export PDF Button */}
+                  <Button
+                    onClick={() => toPDF()}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 px-8 rounded-lg text-lg w-full"
+                  >
+                    <Download className="inline-block w-5 h-5 mr-2" />
+                    Exportar Dieta em PDF
+                  </Button>
+                </div>
+              )}
+              
+              {!isPaymentConfirmed && (
+                <p className="text-sm text-gray-500 mt-4">
+                  Pagamento único e seguro <Lock className="inline w-4 h-4 ml-1" />
+                </p>
+              )}
             </div>
           </>
         )}
@@ -804,10 +997,7 @@ function DietaPersonalizada({ onClick, isSubmitting, currentStep, onUnlock, onPa
 
               <div className="space-y-3">
                 <Button 
-                  onClick={() => {
-                    setShowPaymentModal(false);
-                    onPaymentSuccess();
-                  }}
+                  onClick={handlePaymentConfirm}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3"
                 >
                   Confirmar Pagamento
@@ -833,6 +1023,7 @@ function App() {
   const [mealValidationErrors, setMealValidationErrors] = useState<Record<string, string>>({});
   const [dietStep, setDietStep] = useState<'form' | 'loading' | 'preview'>('form');
   const [activeMealSection, setActiveMealSection] = useState<string | null>(null);
+  const [submittedFormData, setSubmittedFormData] = useState<FormData | null>(null);
 
   const {
     control,
@@ -910,6 +1101,9 @@ function App() {
 
     setIsSubmitting(true);
     console.log('Form data:', data);
+    
+    // Store form data for API call
+    setSubmittedFormData(data);
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1036,6 +1230,7 @@ function App() {
           currentStep={dietStep}
           onUnlock={handleUnlock}
           onPaymentSuccess={handlePaymentSuccess}
+          formData={submittedFormData || undefined}
         />
       </div>
     </main>
