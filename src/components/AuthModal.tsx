@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -262,13 +262,19 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
                 </Label>
                 <div className="relative mt-1">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
-                  <IMaskInput
-                    mask="(00) 00000-0000"
-                    id="phone"
-                    type="tel"
-                    placeholder="(11) 91579-9139"
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10"
-                    {...signUpForm.register('phoneNumber')}
+                  <Controller
+                    name="phoneNumber"
+                    control={signUpForm.control}
+                    render={({ field }) => (
+                      <IMaskInput
+                        {...field}
+                        mask="(00) 00000-0000"
+                        id="phone"
+                        type="tel"
+                        placeholder="(11) 91579-9139"
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10"
+                      />
+                    )}
                   />
                 </div>
                 {signUpForm.formState.errors.phoneNumber && (
@@ -284,13 +290,19 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
                 </Label>
                 <div className="relative mt-1">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
-                  <IMaskInput
-                    mask="000.000.000-00"
-                    id="cpf"
-                    type="text"
-                    placeholder="000.000.000-00"
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10"
-                    {...signUpForm.register('cpf')}
+                  <Controller
+                    name="cpf"
+                    control={signUpForm.control}
+                    render={({ field }) => (
+                      <IMaskInput
+                        {...field}
+                        mask="000.000.000-00"
+                        id="cpf"
+                        type="text"
+                        placeholder="000.000.000-00"
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10"
+                      />
+                    )}
                   />
                 </div>
                 {signUpForm.formState.errors.cpf && (

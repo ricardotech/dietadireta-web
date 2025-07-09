@@ -432,11 +432,10 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                         key={objective.value}
                         type="button"
                         onClick={() => field.onChange(objective.value)}
-                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${
-                          field.value === objective.value
+                        className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === objective.value
                             ? 'border-green-500 bg-green-50 text-green-700'
                             : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
+                          }`}
                       >
                         <div className="text-2xl mb-2">{objective.emoji}</div>
                         <div className="font-medium text-sm">{objective.label}</div>
@@ -523,18 +522,20 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
   )
 }
 
-function DietaPersonalizada({ 
-  onClick, 
-  isSubmitting, 
-  currentStep, 
-  onUnlock, 
-  onPaymentSuccess, 
-  formData 
-}: { 
-  onClick: () => void, 
+function DietaPersonalizada({
+  onClick,
+  isSubmitting,
+  currentStep,
+  onUnlock,
+  onLoadingComplete,
+  onPaymentSuccess,
+  formData
+}: {
+  onClick: () => void,
   isSubmitting: boolean,
   currentStep: 'form' | 'loading' | 'preview',
   onUnlock: () => void,
+  onLoadingComplete: () => void,
   onPaymentSuccess: () => void,
   formData?: FormData
 }) {
@@ -592,7 +593,7 @@ function DietaPersonalizada({
       // Get auth token from localStorage or context - use correct key 'token' not 'authToken'
       const token = localStorage.getItem('token');
       console.log('Auth check in generateDiet:', { token: token ? 'exists' : 'missing', user: user ? 'exists' : 'missing' });
-      
+
       if (!token || !user) {
         console.log('Authentication failed, showing auth modal');
         // Instead of throwing error, show auth modal with signup as default and mark for continuation
@@ -635,7 +636,7 @@ function DietaPersonalizada({
 
       const data = await response.json();
       console.log('Diet Generation API Response:', data);
-      
+
       // Store dietId for later checkout
       if (data.success && data.data.dietId) {
         console.log('Setting dietData with dietId:', data.data.dietId);
@@ -663,7 +664,7 @@ function DietaPersonalizada({
         console.log('dietData set successfully');
         return data;
       }
-      
+
       console.error('Invalid API response - missing success or dietId:', data);
       throw new Error('Invalid response from server');
     } catch (error) {
@@ -708,7 +709,7 @@ function DietaPersonalizada({
 
       // Prepare request body - include dietId if available, otherwise include form data
       const requestBody: any = {};
-      
+
       if (dietId) {
         requestBody.dietId = dietId;
       }
@@ -758,12 +759,12 @@ function DietaPersonalizada({
 
       const data = await response.json();
       console.log('Checkout API Response:', data);
-      
+
       if (data.success) {
         setOrderData(data.data);
         return data;
       }
-      
+
       throw new Error('Invalid checkout response');
     } catch (error) {
       console.error('Error creating checkout:', error);
@@ -803,6 +804,14 @@ function DietaPersonalizada({
     }
   };
 
+  // Reset loading state when entering loading step
+  useEffect(() => {
+    if (currentStep === 'loading') {
+      setLoadingStep(0);
+      setCompletedSteps([]);
+    }
+  }, [currentStep]);
+
   // Handle loading progress with increased time
   useEffect(() => {
     if (currentStep === 'loading') {
@@ -820,17 +829,20 @@ function DietaPersonalizada({
               // Check if user is authenticated before generating diet
               const token = localStorage.getItem('token');
               console.log('Token check:', { token: token ? 'exists' : 'missing', user: user ? 'exists' : 'missing' });
-              
+
               if (token && user) {
                 // User is authenticated, proceed with diet generation
                 console.log('User authenticated, calling generateDiet...');
                 const result = await generateDiet();
                 console.log('generateDiet result:', result);
                 if (result !== null) {
-                  console.log('Diet generated successfully, unlocking preview...');
-                  onUnlock();
+                  console.log('Diet generated successfully, going to preview with real data...');
+                  // Go to preview step with the generated diet data
+                  onLoadingComplete();
                 } else {
-                  console.log('generateDiet returned null');
+                  console.log('generateDiet returned null, going to preview with mock data');
+                  // Still go to preview even if generation failed (fallback data will be used)
+                  onLoadingComplete();
                 }
               } else {
                 // User is not authenticated, show auth modal
@@ -846,22 +858,26 @@ function DietaPersonalizada({
 
       return () => clearInterval(interval);
     }
-  }, [currentStep, onUnlock, user, generateDiet]);
+  }, [currentStep, user, generateDiet, onLoadingComplete]);
 
   // Watch for user authentication changes - only continue if we were waiting for auth
   useEffect(() => {
     if (user && shouldContinueAfterAuth && !showAuthModal) {
       // User has logged in, continue with diet generation
       setShouldContinueAfterAuth(false);
-      
+
       // Continue the diet generation process
       generateDiet().then((result) => {
         if (result !== null) {
-          onUnlock();
+          console.log('Diet generated after auth, going to preview...');
+          onLoadingComplete();
+        } else {
+          console.log('Diet generation failed after auth, going to preview with mock data');
+          onLoadingComplete();
         }
       });
     }
-  }, [user, shouldContinueAfterAuth, showAuthModal, onUnlock, generateDiet]);
+  }, [user, shouldContinueAfterAuth, showAuthModal, generateDiet, onLoadingComplete]);
 
   // Effect to handle immediate progression for already authenticated users
   useEffect(() => {
@@ -909,17 +925,17 @@ function DietaPersonalizada({
     setIsCheckingPayment(true);
     try {
       const paymentStatus = await checkPaymentStatus(orderData.orderId);
-      
+
       if (paymentStatus.success && paymentStatus.paid) {
         setIsPaymentConfirmed(true);
         setShowPaymentModal(false);
-        
+
         // If diet is ready, parse and set the diet data
         if (paymentStatus.data?.aiResponse) {
           const parsedDiet = parseDietResponse(paymentStatus.data.aiResponse);
           setDietData(parsedDiet);
         }
-        
+
         onPaymentSuccess();
       } else {
         alert('Pagamento ainda não foi confirmado. Tente novamente em alguns minutos.');
@@ -954,7 +970,7 @@ function DietaPersonalizada({
       totalCalories: 1425,
       fullResponse: aiResponse
     };
-    
+
     return mockParsedData;
   };
 
@@ -965,13 +981,11 @@ function DietaPersonalizada({
     isActive: boolean;
     isCompleted: boolean;
   }) => (
-    <div className={`flex items-center p-4 rounded-lg transition-all duration-500 ${
-      isActive ? 'bg-green-50 border-2 border-green-200' : 
-      isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-gray-50 border-2 border-gray-200'
-    }`}>
-      <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 transition-all duration-500 ${
-        isCompleted ? 'bg-green-500' : isActive ? 'bg-green-200' : 'bg-gray-300'
+    <div className={`flex items-center p-4 rounded-lg transition-all duration-500 ${isActive ? 'bg-green-50 border-2 border-green-200' :
+        isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-gray-50 border-2 border-gray-200'
       }`}>
+      <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 transition-all duration-500 ${isCompleted ? 'bg-green-500' : isActive ? 'bg-green-200' : 'bg-gray-300'
+        }`}>
         {isCompleted ? (
           <Check className="w-6 h-6 text-white" />
         ) : (
@@ -989,8 +1003,8 @@ function DietaPersonalizada({
     </div>
   );
 
-  const MealPreviewCard = ({ title, items, showMore = false, isBlurred = false }: { 
-    title: string; 
+  const MealPreviewCard = ({ title, items, showMore = false, isBlurred = false }: {
+    title: string;
     items: { name: string; quantity: string; calories: number }[];
     showMore?: boolean;
     isBlurred?: boolean;
@@ -1023,10 +1037,23 @@ function DietaPersonalizada({
 
   // Get the diet data to display (either real data or fallback)
   const displayDietData = dietData || {
-    breakfast: [{ name: "Carregando...", quantity: "...", calories: 0 }],
-    lunch: [{ name: "Carregando...", quantity: "...", calories: 0 }],
-    dinner: [{ name: "Carregando...", quantity: "...", calories: 0 }],
-    totalCalories: 0
+    breakfast: [
+      { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
+      { name: "Café com Leite", quantity: "200ml", calories: 80 },
+      { name: "Banana", quantity: "1 unidade", calories: 90 }
+    ],
+    lunch: [
+      { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+      { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+      { name: "Feijão", quantity: "2 colheres", calories: 140 }
+    ],
+    dinner: [
+      { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+      { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+      { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+    ],
+    totalCalories: 1980,
+    notes: "Sua dieta personalizada estará disponível após o pagamento. Esta é apenas uma prévia dos tipos de alimentos que incluiremos baseados nas suas preferências."
   };
 
   return (
@@ -1094,7 +1121,7 @@ function DietaPersonalizada({
               </div>
               <h1 className="text-2xl font-bold text-gray-800 mb-2">Criando sua Dieta</h1>
               <p className="text-gray-600">
-                {showAuthModal 
+                {showAuthModal
                   ? "Crie sua conta para continuar com sua dieta personalizada"
                   : "Aguarde enquanto personalizamos sua alimentação"
                 }
@@ -1118,7 +1145,7 @@ function DietaPersonalizada({
 
                 <div className="mt-6">
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
                       style={{ width: `${((loadingStep + 1) / loadingSteps.length) * 100}%` }}
                     />
@@ -1174,24 +1201,24 @@ function DietaPersonalizada({
                   {displayDietData.totalCalories} cal/dia
                 </Badge>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <MealPreviewCard 
-                  title="Café da Manhã" 
-                  items={displayDietData.breakfast} 
-                  showMore={true} 
+                <MealPreviewCard
+                  title="Café da Manhã"
+                  items={displayDietData.breakfast}
+                  showMore={true}
                   isBlurred={!isPaymentConfirmed}
                 />
-                <MealPreviewCard 
-                  title="Almoço" 
-                  items={displayDietData.lunch} 
-                  showMore={true} 
+                <MealPreviewCard
+                  title="Almoço"
+                  items={displayDietData.lunch}
+                  showMore={true}
                   isBlurred={!isPaymentConfirmed}
                 />
-                <MealPreviewCard 
-                  title="Jantar" 
-                  items={displayDietData.dinner} 
-                  showMore={true} 
+                <MealPreviewCard
+                  title="Jantar"
+                  items={displayDietData.dinner}
+                  showMore={true}
                   isBlurred={!isPaymentConfirmed}
                 />
               </div>
@@ -1214,7 +1241,7 @@ function DietaPersonalizada({
                     console.log('Current dietData:', dietData);
                     console.log('Current user:', user);
                     console.log('Current currentStep:', currentStep);
-                    
+
                     // Check if user is authenticated before proceeding
                     const token = localStorage.getItem('token');
                     if (!token || !user) {
@@ -1259,7 +1286,7 @@ function DietaPersonalizada({
                       <h2 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Personalizada</h2>
                       <p className="text-gray-600">Total: {displayDietData.totalCalories} calorias por dia</p>
                     </div>
-                    
+
                     {/* Complete Meal Sections */}
                     <div className="space-y-6">
                       {displayDietData.breakfast && (
@@ -1282,7 +1309,7 @@ function DietaPersonalizada({
                           </div>
                         </div>
                       )}
-                      
+
                       {displayDietData.lunch && (
                         <div>
                           <h3 className="text-lg font-semibold text-green-700 mb-3">Almoço</h3>
@@ -1303,7 +1330,7 @@ function DietaPersonalizada({
                           </div>
                         </div>
                       )}
-                      
+
                       {displayDietData.dinner && (
                         <div>
                           <h3 className="text-lg font-semibold text-green-700 mb-3">Jantar</h3>
@@ -1324,7 +1351,7 @@ function DietaPersonalizada({
                           </div>
                         </div>
                       )}
-                      
+
                       {displayDietData.notes && (
                         <div className="bg-blue-50 p-4 rounded-lg">
                           <h3 className="text-lg font-semibold text-blue-700 mb-2">Dicas Importantes</h3>
@@ -1333,7 +1360,7 @@ function DietaPersonalizada({
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Export PDF Button */}
                   <Button
                     onClick={() => toPDF()}
@@ -1344,7 +1371,7 @@ function DietaPersonalizada({
                   </Button>
                 </div>
               )}
-              
+
               {!isPaymentConfirmed && (
                 <p className="text-sm text-gray-500 mt-4">
                   {user ? (
@@ -1387,13 +1414,11 @@ function DietaPersonalizada({
               </div>
 
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <div className="w-48 h-48 bg-white border-2 border-gray-200 rounded-lg mx-auto flex items-center justify-center mb-4">
+                <div className="bg-white border-2 border-gray-200 rounded-lg mx-auto flex items-center justify-center mb-4 overflow-hidden">
                   {orderData?.qrCodeUrl ? (
                     <iframe
                       src={orderData.qrCodeUrl}
-                      width="192"
-                      height="192"
-                      style={{ border: 'none' }}
+                      className="w-[250px] h-[250px] overflow-hidden"
                       title="QR Code PIX"
                     />
                   ) : (
@@ -1412,7 +1437,7 @@ function DietaPersonalizada({
                     </p>
                   )}
                 </div>
-                
+
                 {/* PIX Copy Button - only show if we have order data */}
                 {orderData?.qrCodeUrl && (
                   <button
@@ -1431,16 +1456,16 @@ function DietaPersonalizada({
               </div>
 
               <div className="space-y-3">
-                <Button 
+                <Button
                   onClick={handlePaymentConfirm}
                   disabled={isCheckingPayment}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3"
                 >
                   {isCheckingPayment ? 'Verificando pagamento...' : 'Já realizei o pagamento'}
                 </Button>
-                <Button 
+                <Button
                   onClick={() => setShowPaymentModal(false)}
-                  variant="outline" 
+                  variant="outline"
                   className="w-full"
                   disabled={isCheckingPayment}
                 >
@@ -1467,7 +1492,7 @@ function App() {
   useEffect(() => {
     const savedFormData = localStorage.getItem('dietabox-form-data');
     const savedDietStep = localStorage.getItem('dietabox-diet-step');
-    
+
     if (savedFormData) {
       try {
         const parsedData = JSON.parse(savedFormData);
@@ -1476,7 +1501,7 @@ function App() {
         console.error('Error parsing saved form data:', error);
       }
     }
-    
+
     if (savedDietStep && ['form', 'loading', 'preview'].includes(savedDietStep)) {
       setDietStep(savedDietStep as 'form' | 'loading' | 'preview');
     }
@@ -1570,14 +1595,15 @@ function App() {
 
     setIsSubmitting(true);
     console.log('Form data:', data);
-    
+
     // Store form data for API call
     setSubmittedFormData(data);
-    
+
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSubmitting(false);
-    setDietStep('loading');
+    // Go directly to preview step with mock data - loading will start when user clicks unlock
+    setDietStep('preview');
   };
 
   const onInvalidSubmit = () => {
@@ -1586,6 +1612,12 @@ function App() {
   };
 
   const handleUnlock = () => {
+    // Start the loading/generation process when user clicks unlock
+    setDietStep('loading');
+  };
+
+  const handleLoadingComplete = () => {
+    // When loading completes, go to preview step
     setDietStep('preview');
   };
 
@@ -1692,6 +1724,7 @@ function App() {
           isSubmitting={isSubmitting}
           currentStep={dietStep}
           onUnlock={handleUnlock}
+          onLoadingComplete={handleLoadingComplete}
           onPaymentSuccess={handlePaymentSuccess}
           formData={submittedFormData || undefined}
         />
