@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy, Download } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm, Controller, Control, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -126,7 +126,8 @@ function Header() {
   };
 
   const handleAuthSuccess = () => {
-    setShowAuthModal(false);
+    // Modal already closes in AuthModal component
+    // This just ensures consistency if needed
   };
 
   return (
@@ -544,6 +545,9 @@ function DietaPersonalizada({
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [shouldContinueAfterAuth, setShouldContinueAfterAuth] = useState(false);
+  const { user } = useAuth();
   const { toPDF, targetRef } = usePDF({ filename: 'minha-dieta-personalizada.pdf' });
 
   const loadingSteps = [
@@ -554,15 +558,18 @@ function DietaPersonalizada({
   ];
 
   // API call to generate diet
-  const generateDiet = async () => {
+  const generateDiet = useCallback(async () => {
     try {
-      // Get auth token from localStorage or context
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('Authentication required');
+      // Get auth token from localStorage or context - use correct key 'token' not 'authToken'
+      const token = localStorage.getItem('token');
+      if (!token || !user) {
+        // Instead of throwing error, show auth modal with signup as default and mark for continuation
+        setShouldContinueAfterAuth(true);
+        setShowAuthModal(true);
+        return null;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/generatePrompt`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100'}/api/generatePrompt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -631,17 +638,19 @@ function DietaPersonalizada({
       setDietData(mockData);
       return mockData;
     }
-  };
+  }, [user, formData, setShouldContinueAfterAuth, setShowAuthModal, setOrderData, setDietData]);
 
   // Function to check payment status
   const checkPaymentStatus = async (orderId: string) => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
+      const token = localStorage.getItem('token');
+      if (!token || !user) {
+        setShouldContinueAfterAuth(true);
+        setShowAuthModal(true);
         throw new Error('Authentication required');
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/payment-status/${orderId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100'}/api/payment-status/${orderId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -673,8 +682,19 @@ function DietaPersonalizada({
             setCompletedSteps((completed) => [...completed, prev]);
             // Generate diet after loading completes
             setTimeout(async () => {
-              await generateDiet();
-              onUnlock();
+              // Check if user is authenticated before generating diet
+              const token = localStorage.getItem('token');
+              if (token && user) {
+                // User is authenticated, proceed with diet generation
+                const result = await generateDiet();
+                if (result !== null) {
+                  onUnlock();
+                }
+              } else {
+                // User is not authenticated, show auth modal
+                setShouldContinueAfterAuth(true);
+                setShowAuthModal(true);
+              }
             }, 1500);
             return prev;
           }
@@ -683,11 +703,63 @@ function DietaPersonalizada({
 
       return () => clearInterval(interval);
     }
-  }, [currentStep, onUnlock]);
+  }, [currentStep, onUnlock, user, generateDiet]);
+
+  // Watch for user authentication changes - only continue if we were waiting for auth
+  useEffect(() => {
+    if (user && shouldContinueAfterAuth && !showAuthModal) {
+      // User has logged in, continue with diet generation
+      setShouldContinueAfterAuth(false);
+      
+      // Continue the diet generation process
+      generateDiet().then((result) => {
+        if (result !== null) {
+          onUnlock();
+        }
+      });
+    }
+  }, [user, shouldContinueAfterAuth, showAuthModal, onUnlock, generateDiet]);
+
+  // Effect to handle immediate progression for already authenticated users
+  useEffect(() => {
+    // If user is already authenticated and we're in loading step, proceed directly to diet generation
+    if (currentStep === 'loading' && user && !shouldContinueAfterAuth && !showAuthModal) {
+      const token = localStorage.getItem('token');
+      if (token && currentStep === 'loading') {
+        // User is authenticated, skip auth modal and proceed with diet generation
+        // This will be handled by the main loading useEffect above
+      }
+    }
+  }, [currentStep, user, shouldContinueAfterAuth, showAuthModal]);
+
+  const handleAuthSuccess = () => {
+    // The useEffect above will handle the continuation
+    // This function is called when auth is successful
+    // Modal already closes in AuthModal component
+  };
+
+  const handleAuthModalClose = () => {
+    setShowAuthModal(false);
+    setShouldContinueAfterAuth(false);
+  };
+
+  const handleOpenAuthModal = () => {
+    setShouldContinueAfterAuth(true);
+    setShowAuthModal(true);
+  };
 
   const handlePaymentConfirm = async () => {
     if (!orderData?.orderId) {
       alert('Erro: ID do pedido não encontrado.');
+      return;
+    }
+
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token || !user) {
+      setShouldContinueAfterAuth(true);
+      setShowAuthModal(true);
+      setShowPaymentModal(false);
       return;
     }
 
@@ -878,33 +950,66 @@ function DietaPersonalizada({
                 <Pencil className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-2xl font-bold text-gray-800 mb-2">Criando sua Dieta</h1>
-              <p className="text-gray-600">Aguarde enquanto personalizamos sua alimentação</p>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              {loadingSteps.map((step, index) => (
-                <LoadingStep
-                  key={index}
-                  icon={step.icon}
-                  title={step.title}
-                  description={step.description}
-                  isActive={index === loadingStep}
-                  isCompleted={completedSteps.includes(index)}
-                />
-              ))}
-            </div>
-
-            <div className="mt-6">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${((loadingStep + 1) / loadingSteps.length) * 100}%` }}
-                />
-              </div>
-              <p className="text-center text-sm text-gray-600 mt-2">
-                {Math.round(((loadingStep + 1) / loadingSteps.length) * 100)}% concluído
+              <p className="text-gray-600">
+                {showAuthModal 
+                  ? "Crie sua conta para continuar com sua dieta personalizada"
+                  : "Aguarde enquanto personalizamos sua alimentação"
+                }
               </p>
             </div>
+
+            {!showAuthModal && (
+              <>
+                <div className="space-y-4 mb-6">
+                  {loadingSteps.map((step, index) => (
+                    <LoadingStep
+                      key={index}
+                      icon={step.icon}
+                      title={step.title}
+                      description={step.description}
+                      isActive={index === loadingStep}
+                      isCompleted={completedSteps.includes(index)}
+                    />
+                  ))}
+                </div>
+
+                <div className="mt-6">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${((loadingStep + 1) / loadingSteps.length) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-center text-sm text-gray-600 mt-2">
+                    {Math.round(((loadingStep + 1) / loadingSteps.length) * 100)}% concluído
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Backup button when auth is required */}
+            {(showAuthModal || shouldContinueAfterAuth) && (
+              <div className="text-center mt-6">
+                <div className="bg-gradient-to-r from-blue-50 to-green-50 p-6 rounded-lg mb-4">
+                  <div className="flex items-center justify-center mb-3">
+                    <User className="w-8 h-8 text-blue-600 mr-2" />
+                    <h3 className="text-lg font-semibold text-gray-800">Conta Necessária</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Para continuar com sua dieta personalizada, é necessário criar uma conta gratuita.
+                  </p>
+                  <Button
+                    onClick={handleOpenAuthModal}
+                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-lg text-lg"
+                  >
+                    Criar Conta e Continuar
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">
+                  Seus dados serão preservados e você continuará exatamente onde parou
+                </p>
+              </div>
+            )}
           </>
         )}
 
@@ -961,10 +1066,19 @@ function DietaPersonalizada({
             <div className="text-center">
               {!isPaymentConfirmed ? (
                 <Button
-                  onClick={() => setShowPaymentModal(true)}
+                  onClick={() => {
+                    // Check if user is authenticated before showing payment modal
+                    const token = localStorage.getItem('token');
+                    if (!token || !user) {
+                      setShouldContinueAfterAuth(true);
+                      setShowAuthModal(true);
+                    } else {
+                      setShowPaymentModal(true);
+                    }
+                  }}
                   className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-md md:text-lg w-full mb-2"
                 >
-                  Desbloquear por apenas R$9,90
+                  {user ? 'Desbloquear por apenas R$9,90' : 'Criar Conta e Desbloquear'}
                   <span>
                     <ArrowRight className="inline-block w-8 h-8 ml-2 -mt-2" />
                   </span>
@@ -1065,11 +1179,31 @@ function DietaPersonalizada({
               
               {!isPaymentConfirmed && (
                 <p className="text-sm text-gray-500 mt-4">
-                  Pagamento único e seguro <Lock className="inline w-4 h-4 ml-1" />
+                  {user ? (
+                    <>
+                      Pagamento único e seguro <Lock className="inline w-4 h-4 ml-1" />
+                    </>
+                  ) : (
+                    <>
+                      Crie sua conta gratuita para continuar <Lock className="inline w-4 h-4 ml-1" />
+                    </>
+                  )}
                 </p>
               )}
             </div>
           </>
+        )}
+
+        {/* Auth Modal */}
+        {showAuthModal && (
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={handleAuthModalClose}
+            onSuccess={handleAuthSuccess}
+            selectedPlan="basic"
+            planName="Acesso à Dieta"
+            initialMode="signup"
+          />
         )}
 
         {/* Payment Modal */}
@@ -1159,6 +1293,38 @@ function App() {
   const [dietStep, setDietStep] = useState<'form' | 'loading' | 'preview'>('form');
   const [activeMealSection, setActiveMealSection] = useState<string | null>(null);
   const [submittedFormData, setSubmittedFormData] = useState<FormData | null>(null);
+  const { user } = useAuth();
+
+  // Restore form state from localStorage on mount
+  useEffect(() => {
+    const savedFormData = localStorage.getItem('dietabox-form-data');
+    const savedDietStep = localStorage.getItem('dietabox-diet-step');
+    
+    if (savedFormData) {
+      try {
+        const parsedData = JSON.parse(savedFormData);
+        setSubmittedFormData(parsedData);
+      } catch (error) {
+        console.error('Error parsing saved form data:', error);
+      }
+    }
+    
+    if (savedDietStep && ['form', 'loading', 'preview'].includes(savedDietStep)) {
+      setDietStep(savedDietStep as 'form' | 'loading' | 'preview');
+    }
+  }, []);
+
+  // Save form data to localStorage when it changes
+  useEffect(() => {
+    if (submittedFormData) {
+      localStorage.setItem('dietabox-form-data', JSON.stringify(submittedFormData));
+    }
+  }, [submittedFormData]);
+
+  // Save diet step to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('dietabox-diet-step', dietStep);
+  }, [dietStep]);
 
   const {
     control,
@@ -1257,6 +1423,9 @@ function App() {
 
   const handlePaymentSuccess = () => {
     alert('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
+    // Clear saved form data since process is complete
+    localStorage.removeItem('dietabox-form-data');
+    localStorage.removeItem('dietabox-diet-step');
     // Reset to form for demo purposes
     setDietStep('form');
   };

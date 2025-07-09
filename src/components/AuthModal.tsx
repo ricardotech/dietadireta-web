@@ -75,6 +75,8 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
       
       const result = await register(signUpData as SignUpData);
       if (!result.error) {
+        // Close the modal immediately after successful registration
+        onClose();
         onSuccess(selectedPlan);
       } else {
         setError(result.message);
@@ -93,6 +95,8 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
     try {
       const result = await login(data);
       if (!result.error) {
+        // Close the modal immediately after successful login
+        onClose();
         onSuccess(selectedPlan);
       } else {
         setError(result.message);
