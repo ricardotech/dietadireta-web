@@ -1,46 +1,29 @@
 import { z } from 'zod';
+import { isValidPhoneNumber } from 'libphonenumber-js';
+import { cpf } from 'cpf-cnpj-validator';
 
 // Auth schemas matching the API
 export const signUpSchema = z.object({
   email: z.string().email('Email inválido'),
-  phoneNumber: z.string().optional().refine(
+  phoneNumber: z.string().min(1, 'Telefone é obrigatório').refine(
     (value) => {
-      if (!value) return true; // Optional field
-      // Remove mask characters and validate
-      const digitsOnly = value.replace(/\D/g, '');
-      return digitsOnly.length >= 10;
+      try {
+        // Remove mask characters for validation
+        const cleanValue = value.replace(/\D/g, '');
+        if (cleanValue.length === 0) return false; // Empty is not valid (required)
+        
+        // Validate as Brazilian phone number
+        return isValidPhoneNumber(cleanValue, 'BR');
+      } catch {
+        return false;
+      }
     },
-    'Número deve ter pelo menos 10 dígitos'
+    'Número de telefone inválido'
   ),
   cpf: z.string().min(1, 'CPF é obrigatório').refine(
     (value) => {
-      // Remove all non-digit characters
-      const digitsOnly = value.replace(/\D/g, '');
-      
-      // Check if has 11 digits
-      if (digitsOnly.length !== 11) return false;
-      
-      // Check for known invalid CPFs (all same digits)
-      if (/^(\d)\1{10}$/.test(digitsOnly)) return false;
-      
-      // Validate CPF algorithm
-      let sum = 0;
-      for (let i = 0; i < 9; i++) {
-        sum += parseInt(digitsOnly.charAt(i)) * (10 - i);
-      }
-      let remainder = (sum * 10) % 11;
-      if (remainder === 10 || remainder === 11) remainder = 0;
-      if (remainder !== parseInt(digitsOnly.charAt(9))) return false;
-      
-      sum = 0;
-      for (let i = 0; i < 10; i++) {
-        sum += parseInt(digitsOnly.charAt(i)) * (11 - i);
-      }
-      remainder = (sum * 10) % 11;
-      if (remainder === 10 || remainder === 11) remainder = 0;
-      if (remainder !== parseInt(digitsOnly.charAt(10))) return false;
-      
-      return true;
+      // Use the cpf-cnpj-validator library for proper CPF validation
+      return cpf.isValid(value);
     },
     'CPF inválido'
   ),
@@ -59,7 +42,7 @@ export interface AuthResponse {
   user: {
     id: string;
     email: string;
-    phoneNumber?: string;
+    phoneNumber: string;
     cpf: string;
   };
   token: string;

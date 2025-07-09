@@ -714,6 +714,15 @@ function DietaPersonalizada({
         requestBody.dietId = dietId;
       }
 
+      // Always include user information for payment processing
+      if (user) {
+        requestBody.userInfo = {
+          email: user.email,
+          phoneNumber: user.phoneNumber, // Include phone number for payment gateway
+          cpf: user.cpf, // Include CPF for payment gateway
+        };
+      }
+
       // Always include userData as fallback in case dietId doesn't exist or is invalid
       if (formData) {
         // Map frontend values to backend enum values
@@ -1602,8 +1611,8 @@ function App() {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSubmitting(false);
-    // Go directly to preview step with mock data - loading will start when user clicks unlock
-    setDietStep('preview');
+    // Go to loading step to show diet creation process
+    setDietStep('loading');
   };
 
   const onInvalidSubmit = () => {

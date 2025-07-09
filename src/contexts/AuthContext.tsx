@@ -12,7 +12,8 @@ import { useRouter } from "next/navigation";
 type User = {
   id: string;
   email: string;
-  phoneNumber?: string;
+  phoneNumber: string;
+  cpf: string;
 };
 
 type AuthResponse = {
@@ -23,7 +24,8 @@ type AuthResponse = {
 
 type SignUpData = {
   email: string;
-  phoneNumber?: string;
+  phoneNumber: string;
+  cpf: string;
   password: string;
 };
 
