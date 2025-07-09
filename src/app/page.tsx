@@ -550,6 +550,33 @@ function DietaPersonalizada({
   const { user } = useAuth();
   const { toPDF, targetRef } = usePDF({ filename: 'minha-dieta-personalizada.pdf' });
 
+  // Debug: Log dietData changes
+  useEffect(() => {
+    console.log('dietData changed:', dietData);
+  }, [dietData]);
+
+  // Persist dietData in localStorage to survive state changes
+  useEffect(() => {
+    if (dietData && dietData.dietId) {
+      console.log('Saving dietData to localStorage:', dietData);
+      localStorage.setItem('dietabox-diet-data', JSON.stringify(dietData));
+    }
+  }, [dietData]);
+
+  // Restore dietData from localStorage on mount
+  useEffect(() => {
+    const savedDietData = localStorage.getItem('dietabox-diet-data');
+    if (savedDietData && !dietData) {
+      try {
+        const parsedDietData = JSON.parse(savedDietData);
+        console.log('Restoring dietData from localStorage:', parsedDietData);
+        setDietData(parsedDietData);
+      } catch (error) {
+        console.error('Error parsing saved diet data:', error);
+      }
+    }
+  }, []);
+
   const loadingSteps = [
     { icon: LineChart, title: "Analisando Preferências", description: "Processando seus alimentos favoritos" },
     { icon: AlertCircle, title: "Calculando Calorias", description: "Ajustando para seu objetivo" },
@@ -557,18 +584,23 @@ function DietaPersonalizada({
     { icon: Check, title: "Finalizando", description: "Sua dieta está pronta!" }
   ];
 
-  // API call to generate diet
+  // API call to generate diet plan (step 1: create Diet record)
   const generateDiet = useCallback(async () => {
+    console.log('generateDiet called with formData:', formData);
     try {
       // Get auth token from localStorage or context - use correct key 'token' not 'authToken'
       const token = localStorage.getItem('token');
+      console.log('Auth check in generateDiet:', { token: token ? 'exists' : 'missing', user: user ? 'exists' : 'missing' });
+      
       if (!token || !user) {
+        console.log('Authentication failed, showing auth modal');
         // Instead of throwing error, show auth modal with signup as default and mark for continuation
         setShouldContinueAfterAuth(true);
         setShowAuthModal(true);
         return null;
       }
 
+      console.log('Making API call to /api/generatePrompt...');
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100'}/api/generatePrompt`, {
         method: 'POST',
         headers: {
@@ -579,12 +611,12 @@ function DietaPersonalizada({
           weight: formData?.weight || '70',
           height: formData?.height || '170',
           age: formData?.age || '30',
-          goal: formData?.objective || 'maintenance',
+          goal: formData?.objective || 'emagrecer',
           calories: '2000',
-          gender: 'male',
-          schedule: 'regular',
-          activityLevel: 'moderate',
-          workoutPlan: 'none',
+          gender: 'm', // Fixed: use valid gender enum
+          schedule: 'padrao', // Fixed: use valid schedule value
+          activityLevel: 'moderado', // Fixed: use valid activity level enum
+          workoutPlan: 'nenhum', // Fixed: use valid workout plan enum
           breakfast: formData?.breakfastItems?.join(', ') || 'ovos, aveia, frutas',
           morningSnack: formData?.morningSnackItems?.join(', ') || 'frutas, castanhas',
           lunch: formData?.lunchItems?.join(', ') || 'frango, arroz, verduras',
@@ -593,30 +625,51 @@ function DietaPersonalizada({
         }),
       });
 
+      console.log('API response status:', response.status);
       if (!response.ok) {
-        throw new Error('Failed to generate diet');
+        const errorText = await response.text();
+        console.error('API response error:', errorText);
+        throw new Error(`Failed to generate diet: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('API Response:', data);
+      console.log('Diet Generation API Response:', data);
       
-      // Set both diet data and order data
-      if (data.success) {
-        setOrderData(data.data);
+      // Store dietId for later checkout
+      if (data.success && data.data.dietId) {
+        console.log('Setting dietData with dietId:', data.data.dietId);
+        // Store the dietId for checkout process
         setDietData({
-          // We'll parse the AI response later when payment is confirmed
-          orderId: data.data.orderId,
-          qrCodeUrl: data.data.qrCodeUrl,
-          status: data.data.status,
-          amount: data.data.amount,
-          expiresAt: data.data.expiresAt
+          dietId: data.data.dietId,
+          // Initialize with preview data
+          breakfast: [
+            { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
+            { name: "Café com Leite", quantity: "200ml", calories: 80 },
+            { name: "Banana", quantity: "1 unidade", calories: 90 }
+          ],
+          lunch: [
+            { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+            { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+            { name: "Brócolis", quantity: "1 xícara", calories: 55 }
+          ],
+          dinner: [
+            { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+            { name: "Batata Doce", quantity: "1 unidade pequena", calories: 120 },
+            { name: "Salada Verde", quantity: "1 prato", calories: 50 }
+          ],
+          totalCalories: 1425
         });
+        console.log('dietData set successfully');
+        return data;
       }
-      return data;
+      
+      console.error('Invalid API response - missing success or dietId:', data);
+      throw new Error('Invalid response from server');
     } catch (error) {
       console.error('Error generating diet:', error);
       // Fallback to mock data if API fails
       const mockData = {
+        dietId: 'fallback-diet-id',
         breakfast: [
           { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
           { name: "Café com Leite", quantity: "200ml", calories: 80 },
@@ -635,10 +688,52 @@ function DietaPersonalizada({
         totalCalories: 1980,
         notes: "Lembre-se de beber pelo menos 2 litros de água por dia e fazer as refeições nos horários indicados."
       };
+      console.log('Setting fallback dietData:', mockData);
       setDietData(mockData);
       return mockData;
     }
-  }, [user, formData, setShouldContinueAfterAuth, setShowAuthModal, setOrderData, setDietData]);
+  }, [user, formData, setShouldContinueAfterAuth, setShowAuthModal, setDietData]);
+
+  // API call to create checkout (step 2: create payment order)
+  const createCheckout = useCallback(async (dietId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token || !user) {
+        setShouldContinueAfterAuth(true);
+        setShowAuthModal(true);
+        return null;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100'}/api/checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          dietId: dietId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout');
+      }
+
+      const data = await response.json();
+      console.log('Checkout API Response:', data);
+      
+      if (data.success) {
+        setOrderData(data.data);
+        return data;
+      }
+      
+      throw new Error('Invalid checkout response');
+    } catch (error) {
+      console.error('Error creating checkout:', error);
+      alert('Erro ao criar pedido. Tente novamente.');
+      return null;
+    }
+  }, [user, setOrderData, setShouldContinueAfterAuth, setShowAuthModal]);
 
   // Function to check payment status
   const checkPaymentStatus = async (orderId: string) => {
@@ -682,16 +777,25 @@ function DietaPersonalizada({
             setCompletedSteps((completed) => [...completed, prev]);
             // Generate diet after loading completes
             setTimeout(async () => {
+              console.log('Loading completed, generating diet...');
               // Check if user is authenticated before generating diet
               const token = localStorage.getItem('token');
+              console.log('Token check:', { token: token ? 'exists' : 'missing', user: user ? 'exists' : 'missing' });
+              
               if (token && user) {
                 // User is authenticated, proceed with diet generation
+                console.log('User authenticated, calling generateDiet...');
                 const result = await generateDiet();
+                console.log('generateDiet result:', result);
                 if (result !== null) {
+                  console.log('Diet generated successfully, unlocking preview...');
                   onUnlock();
+                } else {
+                  console.log('generateDiet returned null');
                 }
               } else {
                 // User is not authenticated, show auth modal
+                console.log('User not authenticated, showing auth modal');
                 setShouldContinueAfterAuth(true);
                 setShowAuthModal(true);
               }
@@ -1066,14 +1170,45 @@ function DietaPersonalizada({
             <div className="text-center">
               {!isPaymentConfirmed ? (
                 <Button
-                  onClick={() => {
-                    // Check if user is authenticated before showing payment modal
+                  onClick={async () => {
+                    console.log('Desbloquear button clicked');
+                    console.log('Current dietData:', dietData);
+                    console.log('Current user:', user);
+                    console.log('Current currentStep:', currentStep);
+                    
+                    // Check if user is authenticated before proceeding
                     const token = localStorage.getItem('token');
                     if (!token || !user) {
+                      console.log('User not authenticated, showing auth modal');
                       setShouldContinueAfterAuth(true);
                       setShowAuthModal(true);
-                    } else {
+                      return;
+                    }
+
+                    let currentDietId = dietData?.dietId;
+
+                    // If we don't have a dietId, generate the diet first
+                    if (!currentDietId) {
+                      console.log('No dietId found, generating diet first...');
+                      const dietResult = await generateDiet();
+                      if (dietResult && dietResult.data?.dietId) {
+                        currentDietId = dietResult.data.dietId;
+                        console.log('Diet generated successfully with ID:', currentDietId);
+                      } else {
+                        console.error('Failed to generate diet');
+                        alert('Erro ao gerar dieta. Tente novamente.');
+                        return;
+                      }
+                    }
+
+                    // Now create checkout with the dietId
+                    console.log('Creating checkout with dietId:', currentDietId);
+                    const checkoutResult = await createCheckout(currentDietId);
+                    if (checkoutResult) {
+                      console.log('Checkout created successfully:', checkoutResult);
                       setShowPaymentModal(true);
+                    } else {
+                      console.error('Checkout creation failed');
                     }
                   }}
                   className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-md md:text-lg w-full mb-2"
