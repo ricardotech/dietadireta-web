@@ -695,7 +695,7 @@ function DietaPersonalizada({
   }, [user, formData, setShouldContinueAfterAuth, setShowAuthModal, setDietData]);
 
   // API call to create checkout (step 2: create payment order)
-  const createCheckout = useCallback(async (dietId: string) => {
+  const createCheckout = useCallback(async (dietId?: string) => {
     try {
       const token = localStorage.getItem('token');
       if (!token || !user) {
@@ -704,15 +704,50 @@ function DietaPersonalizada({
         return null;
       }
 
+      // Prepare request body - include dietId if available, otherwise include form data
+      const requestBody: any = {};
+      
+      if (dietId) {
+        requestBody.dietId = dietId;
+      }
+
+      // Always include userData as fallback in case dietId doesn't exist or is invalid
+      if (formData) {
+        // Map frontend values to backend enum values
+        const goalMapping: Record<string, string> = {
+          'emagrecer': 'emagrecer',
+          'emagrecer_massa': 'emagrecer+massa',
+          'ganhar_massa': 'ganhar massa muscular',
+          'definicao_ganho': 'definicao muscular + ganhar massa'
+        };
+
+        requestBody.userData = {
+          weight: formData.weight,
+          height: formData.height,
+          age: formData.age,
+          goal: goalMapping[formData.objective] || formData.objective, // Map to correct enum value
+          calories: "2000", // Default fallback
+          gender: "m", // Use correct enum value: 'm' or 'f'
+          schedule: "07:00-10:00-12:30-15:30-19:30", // Use valid schedule enum value
+          activityLevel: "moderado", // Use valid activity level enum
+          workoutPlan: "academia", // Use correct enum value: 'academia', 'casa', or 'nenhum'
+          breakfast: formData.breakfastItems.join(', ') || "pao, cafe",
+          morningSnack: formData.morningSnackItems.join(', ') || "fruta",
+          lunch: formData.lunchItems.join(', ') || "arroz, feijao, carne",
+          afternoonSnack: formData.afternoonSnackItems.join(', ') || "iogurte",
+          dinner: formData.dinnerItems.join(', ') || "salada, proteina"
+        };
+      }
+
+      console.log('Checkout request body:', requestBody);
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100'}/api/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          dietId: dietId
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -733,7 +768,7 @@ function DietaPersonalizada({
       alert('Erro ao criar pedido. Tente novamente.');
       return null;
     }
-  }, [user, setOrderData, setShouldContinueAfterAuth, setShowAuthModal]);
+  }, [user, formData, setOrderData, setShouldContinueAfterAuth, setShowAuthModal]);
 
   // Function to check payment status
   const checkPaymentStatus = async (orderId: string) => {
@@ -1185,25 +1220,9 @@ function DietaPersonalizada({
                       return;
                     }
 
-                    let currentDietId = dietData?.dietId;
-
-                    // If we don't have a dietId, generate the diet first
-                    if (!currentDietId) {
-                      console.log('No dietId found, generating diet first...');
-                      const dietResult = await generateDiet();
-                      if (dietResult && dietResult.data?.dietId) {
-                        currentDietId = dietResult.data.dietId;
-                        console.log('Diet generated successfully with ID:', currentDietId);
-                      } else {
-                        console.error('Failed to generate diet');
-                        alert('Erro ao gerar dieta. Tente novamente.');
-                        return;
-                      }
-                    }
-
-                    // Now create checkout with the dietId
-                    console.log('Creating checkout with dietId:', currentDietId);
-                    const checkoutResult = await createCheckout(currentDietId);
+                    // Call checkout directly - backend will handle creating diet if needed
+                    console.log('Creating checkout...');
+                    const checkoutResult = await createCheckout(dietData?.dietId);
                     if (checkoutResult) {
                       console.log('Checkout created successfully:', checkoutResult);
                       setShowPaymentModal(true);
