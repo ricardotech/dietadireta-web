@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { AuthModal } from "@/components/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePDF } from 'react-to-pdf';
+import { toast } from "sonner";
 
 // Form validation schema
 const formSchema = z.object({
@@ -918,7 +919,7 @@ function DietaPersonalizada({
 
   const handlePaymentConfirm = async () => {
     if (!orderData?.orderId) {
-      alert('Erro: ID do pedido não encontrado.');
+      toast.error('Erro: ID do pedido não encontrado.');
       return;
     }
 
@@ -936,6 +937,7 @@ function DietaPersonalizada({
       const paymentStatus = await checkPaymentStatus(orderData.orderId);
 
       if (paymentStatus.success && paymentStatus.paid) {
+        // Payment confirmed successfully
         setIsPaymentConfirmed(true);
         setShowPaymentModal(false);
 
@@ -943,15 +945,19 @@ function DietaPersonalizada({
         if (paymentStatus.data?.aiResponse) {
           const parsedDiet = parseDietResponse(paymentStatus.data.aiResponse);
           setDietData(parsedDiet);
+          toast.success('Pagamento confirmado! Sua dieta personalizada está pronta.');
+        } else if (paymentStatus.processing) {
+          toast.success('Pagamento confirmado! Sua dieta está sendo gerada...');
         }
 
         onPaymentSuccess();
       } else {
-        alert('Pagamento ainda não foi confirmado. Tente novamente em alguns minutos.');
+        // Payment not confirmed yet
+        toast.error('Pagamento ainda não foi confirmado. Tente novamente em alguns minutos.');
       }
     } catch (error) {
       console.error('Error checking payment:', error);
-      alert('Erro ao verificar pagamento. Tente novamente.');
+      toast.error('Erro ao verificar pagamento. Tente novamente.');
     } finally {
       setIsCheckingPayment(false);
     }
@@ -959,28 +965,96 @@ function DietaPersonalizada({
 
   // Function to parse AI diet response into structured data
   const parseDietResponse = (aiResponse: string) => {
-    // Simple parsing - in a real app, you'd want more sophisticated parsing
-    const mockParsedData = {
-      breakfast: [
-        { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
-        { name: "Café com Leite", quantity: "200ml", calories: 80 },
-        { name: "Banana", quantity: "1 unidade", calories: 90 }
-      ],
-      lunch: [
-        { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-        { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-        { name: "Brócolis", quantity: "1 xícara", calories: 55 }
-      ],
-      dinner: [
-        { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-        { name: "Batata Doce", quantity: "1 unidade pequena", calories: 120 },
-        { name: "Salada Verde", quantity: "1 prato", calories: 50 }
-      ],
-      totalCalories: 1425,
-      fullResponse: aiResponse
-    };
+    try {
+      // Try to extract structured meal data from the AI response
+      const meals: {
+        breakfast: Array<{ name: string; quantity: string; calories: number }>;
+        morningSnack: Array<{ name: string; quantity: string; calories: number }>;
+        lunch: Array<{ name: string; quantity: string; calories: number }>;
+        afternoonSnack: Array<{ name: string; quantity: string; calories: number }>;
+        dinner: Array<{ name: string; quantity: string; calories: number }>;
+      } = {
+        breakfast: [],
+        morningSnack: [],
+        lunch: [],
+        afternoonSnack: [],
+        dinner: []
+      };
+      
+      // Simple parsing for common meal patterns
+      const parseSection = (sectionName: string, aliasNames: string[] = []) => {
+        const allNames = [sectionName, ...aliasNames];
+        for (const name of allNames) {
+          const regex = new RegExp(`${name}:?\\s*\\n([\\s\\S]*?)(?=\\n\\n|\\n[A-Z]|$)`, 'i');
+          const match = aiResponse.match(regex);
+          if (match) {
+            const items = match[1].split('\n')
+              .filter(line => line.trim())
+              .map(line => {
+                const item = line.trim().replace(/^[-•*]\s*/, '');
+                return {
+                  name: item,
+                  quantity: "Conforme orientação",
+                  calories: 0
+                };
+              });
+            return items;
+          }
+        }
+        return [];
+      };
 
-    return mockParsedData;
+      meals.breakfast = parseSection("Café da Manhã", ["Café da manhã", "Breakfast"]);
+      meals.morningSnack = parseSection("Lanche da Manhã", ["Lanche da manhã", "Morning Snack"]);
+      meals.lunch = parseSection("Almoço", ["Lunch"]);
+      meals.afternoonSnack = parseSection("Lanche da Tarde", ["Lanche da tarde", "Afternoon Snack"]);
+      meals.dinner = parseSection("Jantar", ["Dinner"]);
+
+      // Calculate total calories from the response if available
+      const caloriesMatch = aiResponse.match(/(\d+)\s*(?:kcal|cal|calorias)/i);
+      const totalCalories = caloriesMatch ? parseInt(caloriesMatch[1]) : 0;
+
+      // If no structured data found, use the full response as notes
+      const hasStructuredData = Object.values(meals).some(meal => meal.length > 0);
+      
+      if (!hasStructuredData) {
+        // Fallback: show the full AI response as notes
+        return {
+          breakfast: [
+            { name: "Plano nutricional personalizado", quantity: "Veja detalhes abaixo", calories: 0 }
+          ],
+          lunch: [],
+          dinner: [],
+          totalCalories: totalCalories,
+          notes: aiResponse,
+          fullResponse: aiResponse
+        };
+      }
+
+      return {
+        breakfast: meals.breakfast,
+        morningSnack: meals.morningSnack,
+        lunch: meals.lunch,
+        afternoonSnack: meals.afternoonSnack,
+        dinner: meals.dinner,
+        totalCalories: totalCalories,
+        notes: aiResponse,
+        fullResponse: aiResponse
+      };
+    } catch (error) {
+      console.error('Error parsing diet response:', error);
+      // Fallback to displaying the full response
+      return {
+        breakfast: [
+          { name: "Plano nutricional personalizado", quantity: "Veja detalhes abaixo", calories: 0 }
+        ],
+        lunch: [],
+        dinner: [],
+        totalCalories: 0,
+        notes: aiResponse,
+        fullResponse: aiResponse
+      };
+    }
   };
 
   const LoadingStep = ({ icon: Icon, title, description, isActive, isCompleted }: {
@@ -1319,11 +1393,53 @@ function DietaPersonalizada({
                         </div>
                       )}
 
+                      {displayDietData.morningSnack && displayDietData.morningSnack.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-green-700 mb-3">Lanche da Manhã</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {displayDietData.morningSnack.map((item: any, index: number) => (
+                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium text-gray-800">{item.name}</p>
+                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                                  </div>
+                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    {item.calories} cal
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {displayDietData.lunch && (
                         <div>
                           <h3 className="text-lg font-semibold text-green-700 mb-3">Almoço</h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {displayDietData.lunch.map((item: any, index: number) => (
+                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium text-gray-800">{item.name}</p>
+                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                                  </div>
+                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                    {item.calories} cal
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {displayDietData.afternoonSnack && displayDietData.afternoonSnack.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-green-700 mb-3">Lanche da Tarde</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {displayDietData.afternoonSnack.map((item: any, index: number) => (
                               <div key={index} className="bg-gray-50 p-3 rounded-lg">
                                 <div className="flex justify-between items-center">
                                   <div>
@@ -1363,8 +1479,8 @@ function DietaPersonalizada({
 
                       {displayDietData.notes && (
                         <div className="bg-blue-50 p-4 rounded-lg">
-                          <h3 className="text-lg font-semibold text-blue-700 mb-2">Dicas Importantes</h3>
-                          <p className="text-gray-700">{displayDietData.notes}</p>
+                          <h3 className="text-lg font-semibold text-blue-700 mb-2">Plano Nutricional Completo</h3>
+                          <div className="text-gray-700 whitespace-pre-wrap">{displayDietData.notes}</div>
                         </div>
                       )}
                     </div>

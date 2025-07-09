@@ -1,6 +1,7 @@
 "use client";
 
 import { AuthProvider } from "@/contexts/AuthContext";
+import { Toaster } from "@/components/ui/sonner";
 import { ReactNode } from "react";
 
 type ProvidersProps = {
@@ -11,6 +12,7 @@ const Providers = ({ children }: ProvidersProps) => {
   return (
     <AuthProvider>
       {children}
+      <Toaster />
     </AuthProvider>
   );
 };
