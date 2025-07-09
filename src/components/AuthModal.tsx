@@ -45,6 +45,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
     defaultValues: {
       email: '',
       phoneNumber: '',
+      cpf: '',
       password: '',
     },
   });
@@ -65,6 +66,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
       // Prepare data for backend - remove empty phoneNumber field
       const signUpData: Partial<SignUpData> = {
         email: data.email,
+        cpf: data.cpf,
         password: data.password,
       };
       
@@ -272,6 +274,28 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
                 {signUpForm.formState.errors.phoneNumber && (
                   <p className="text-red-500 text-xs mt-1">
                     {signUpForm.formState.errors.phoneNumber.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label htmlFor="cpf" className="text-sm font-medium text-gray-700">
+                  CPF
+                </Label>
+                <div className="relative mt-1">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 z-10" />
+                  <IMaskInput
+                    mask="000.000.000-00"
+                    id="cpf"
+                    type="text"
+                    placeholder="000.000.000-00"
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 pl-10"
+                    {...signUpForm.register('cpf')}
+                  />
+                </div>
+                {signUpForm.formState.errors.cpf && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {signUpForm.formState.errors.cpf.message}
                   </p>
                 )}
               </div>

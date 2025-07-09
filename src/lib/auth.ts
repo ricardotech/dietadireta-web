@@ -12,6 +12,7 @@ export const signUpSchema = z.object({
     },
     'Número deve ter pelo menos 10 dígitos'
   ),
+  cpf: z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, 'CPF deve estar no formato 000.000.000-00'),
   password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres'),
 });
 
@@ -28,6 +29,7 @@ export interface AuthResponse {
     id: string;
     email: string;
     phoneNumber?: string;
+    cpf: string;
   };
   token: string;
   userToken: string;

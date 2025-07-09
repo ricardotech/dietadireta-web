@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy, Download } from "lucide-react";
+import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy, Download, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm, Controller, Control, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -545,6 +545,7 @@ function DietaPersonalizada({
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
+  const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [shouldContinueAfterAuth, setShouldContinueAfterAuth] = useState(false);
   const { user } = useAuth();
@@ -696,6 +697,7 @@ function DietaPersonalizada({
 
   // API call to create checkout (step 2: create payment order)
   const createCheckout = useCallback(async (dietId?: string) => {
+    setIsCreatingCheckout(true);
     try {
       const token = localStorage.getItem('token');
       if (!token || !user) {
@@ -767,6 +769,8 @@ function DietaPersonalizada({
       console.error('Error creating checkout:', error);
       alert('Erro ao criar pedido. Tente novamente.');
       return null;
+    } finally {
+      setIsCreatingCheckout(false);
     }
   }, [user, formData, setOrderData, setShouldContinueAfterAuth, setShowAuthModal]);
 
@@ -1230,12 +1234,22 @@ function DietaPersonalizada({
                       console.error('Checkout creation failed');
                     }
                   }}
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-8 px-8 rounded-lg text-md md:text-lg w-full mb-2"
+                  disabled={isCreatingCheckout}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-green-400 disabled:to-emerald-400 disabled:cursor-not-allowed text-white font-bold py-8 px-8 rounded-lg text-md md:text-lg w-full mb-2"
                 >
-                  {user ? 'Desbloquear por apenas R$9,90' : 'Criar Conta e Desbloquear'}
-                  <span>
-                    <ArrowRight className="inline-block w-8 h-8 ml-2 -mt-2" />
-                  </span>
+                  {isCreatingCheckout ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                      Carregando...
+                    </div>
+                  ) : (
+                    <>
+                      {user ? 'Desbloquear por apenas R$9,90' : 'Criar Conta e Desbloquear'}
+                      <span>
+                        <ArrowRight className="inline-block w-8 h-8 ml-2 -mt-2" />
+                      </span>
+                    </>
+                  )}
                 </Button>
               ) : (
                 <div className="space-y-4">
