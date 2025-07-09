@@ -1440,11 +1440,11 @@ function DietaPersonalizada({
                 <div className="text-center mb-4">
                   <p className="font-bold text-lg text-gray-800">R$ {orderData?.amount ? (orderData.amount / 100).toFixed(2) : '9,90'}</p>
                   <p className="text-sm text-gray-600">Dieta Personalizada</p>
-                  {orderData?.expiresAt && (
+                  {/* {orderData?.expiresAt && (
                     <p className="text-xs text-gray-500 mt-1">
                       Expira em: {new Date(orderData.expiresAt).toLocaleDateString('pt-BR')}
                     </p>
-                  )}
+                  )} */}
                 </div>
 
                 {/* PIX Copy Button - only show if we have order data */}
