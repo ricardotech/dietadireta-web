@@ -778,7 +778,7 @@ function DietaPersonalizada({
       throw new Error('Invalid checkout response');
     } catch (error) {
       console.error('Error creating checkout:', error);
-      alert('Erro ao criar pedido. Tente novamente.');
+      toast.error('Erro ao criar pedido. Tente novamente.');
       return null;
     } finally {
       setIsCreatingCheckout(false);
@@ -1570,7 +1570,7 @@ function DietaPersonalizada({
                       // In a real implementation, you'd get the PIX code from the backend
                       const pixCode = "00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540510.005802BR5913NUTRI DIETA6009SAO PAULO62140510DIETA123456304B2A2";
                       navigator.clipboard.writeText(pixCode);
-                      alert("Código PIX copiado!");
+                      toast.success("Código PIX copiado!");
                     }}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
                   >
@@ -1747,7 +1747,7 @@ function App() {
   };
 
   const handlePaymentSuccess = () => {
-    alert('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
+    toast.success('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
     // Clear saved form data since process is complete
     localStorage.removeItem('dietabox-form-data');
     localStorage.removeItem('dietabox-diet-step');

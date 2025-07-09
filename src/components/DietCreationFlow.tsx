@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Utensils, Clock, CheckCircle, Sparkles, Lock, Unlock, QrCode, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Image from 'next/image';
+import { toast } from "sonner";
 
 interface DietCreationFlowProps {
   onBack: () => void;
@@ -306,7 +307,7 @@ export const DietCreationFlow: React.FC<DietCreationFlowProps> = ({ onBack, form
   const handlePaymentClose = () => {
     setShowPaymentModal(false);
     // Here you would typically handle successful payment
-    alert('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
+    toast.success('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
   };
 
   const handlePaymentBack = () => {
