@@ -8,6 +8,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { AuthModal } from './AuthModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PricingPageProps {
     onBack: () => void;
@@ -16,6 +17,9 @@ interface PricingPageProps {
 
 function Header() {
     const [isOpen, setIsOpen] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup'>('signin');
+    const { user, loading, signOut } = useAuth();
 
     const navigationItems = [
         { icon: Home, label: "Home", href: "/" },
@@ -23,6 +27,15 @@ function Header() {
         { icon: User, label: "Perfil", href: "/perfil" },
         { icon: HelpCircle, label: "Suporte", href: "/suporte" },
     ];
+
+    const handleSignOut = async () => {
+        await signOut();
+        setIsOpen(false);
+    };
+
+    const handleAuthSuccess = () => {
+        setShowAuthModal(false);
+    };
 
     return (
         <header className="p-4 flex border-b border-[#F0F0F0] bg-white fixed w-full z-50 h-[75px]">
@@ -40,16 +53,40 @@ function Header() {
 
                 {/* Desktop Navigation */}
                 <div className="hidden md:flex items-center space-x-6">
-                    {navigationItems.map((item) => (
-                        <Button
-                            key={item.label}
-                            variant="ghost"
-                            className="text-sm px-4 py-2 flex items-center hover:bg-gray-100"
-                        >
-                            <item.icon className="w-4 h-4 mr-2" />
-                            {item.label}
-                        </Button>
-                    ))}
+                    {!loading && (
+                        user ? (
+                            <>
+                                {navigationItems.map((item) => (
+                                    <Button
+                                        key={item.label}
+                                        variant="ghost"
+                                        className="text-sm px-4 py-2 flex items-center hover:bg-gray-100"
+                                    >
+                                        <item.icon className="w-4 h-4 mr-2" />
+                                        {item.label}
+                                    </Button>
+                                ))}
+                                <Button
+                                    variant="outline"
+                                    onClick={handleSignOut}
+                                    className="text-sm px-4 py-2 flex items-center hover:bg-gray-100 border-gray-200"
+                                >
+                                    <LogOut className="w-4 h-4 mr-2" />
+                                    Sair
+                                </Button>
+                            </>
+                        ) : (
+                            <Button
+                                onClick={() => {
+                                    setAuthModalMode('signin');
+                                    setShowAuthModal(true);
+                                }}
+                                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 text-md font-medium"
+                            >
+                                Já possuo uma conta
+                            </Button>
+                        )
+                    )}
                 </div>
 
                 {/* Mobile Navigation */}
@@ -88,57 +125,120 @@ function Header() {
 
                                 {/* Navigation Items */}
                                 <div className="flex-1 py-2">
-                                    {navigationItems.map((item, index) => (
-                                        <div key={item.label} className="relative">
-                                            <Button
-                                                variant="ghost"
-                                                className={`w-full justify-start px-6 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-none relative group ${index === 0 ? 'bg-gray-50' : ''
-                                                    }`}
-                                                onClick={() => setIsOpen(false)}
-                                            >
-                                                <div className={`absolute left-0 top-0 bottom-0 w-1 bg-green-500 transition-opacity ${index === 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                                    }`} />
-                                                <item.icon className="w-5 h-5 mr-4 text-gray-600" />
-                                                {item.label}
-                                            </Button>
+                                    {!loading && user ? (
+                                        // Authenticated user navigation
+                                        <>
+                                            {navigationItems.map((item, index) => (
+                                                <div key={item.label} className="relative">
+                                                    <Button
+                                                        variant="ghost"
+                                                        className={`w-full justify-start px-6 py-4 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-none relative group ${index === 0 ? 'bg-gray-50' : ''
+                                                            }`}
+                                                        onClick={() => setIsOpen(false)}
+                                                    >
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-1 bg-green-500 transition-opacity ${index === 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                                                            }`} />
+                                                        <item.icon className="w-5 h-5 mr-4 text-gray-600" />
+                                                        {item.label}
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        // Non-authenticated user - empty navigation or welcome message
+                                        <div className="px-6 py-8 text-center">
+                                            <div className="text-gray-500 text-sm mb-4">
+                                                Faça login para acessar todas as funcionalidades
+                                            </div>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
 
                                 {/* User Profile Section */}
                                 <div className="border-t border-gray-100 p-6 space-y-4">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                            <User className="w-4 h-4 text-gray-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-900">Meu Perfil</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="flex items-center text-sm text-gray-600">
-                                            <span className="mr-2">📧</span>
-                                            <span>lucaslu@gmail.com</span>
-                                        </div>
-                                        <div className="flex items-center text-sm text-gray-600">
-                                            <span className="mr-2">💰</span>
-                                            <span>Saldo: #0</span>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="ghost"
-                                        className="w-full justify-start px-0 py-3 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                                        onClick={() => setIsOpen(false)}
-                                    >
-                                        <LogOut className="w-4 h-4 mr-3" />
-                                        Sair
-                                    </Button>
+                                    {!loading && (
+                                        user ? (
+                                            <>
+                                                {/* User Profile Info */}
+                                                <div className="flex items-center space-x-3 mb-4">
+                                                    <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-lg">
+                                                        <User className="w-5 h-5 text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-base font-semibold text-gray-900">Perfil</p>
+                                                        <p className="text-sm text-gray-500">Gerencie sua conta</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* User Details */}
+                                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                                                    <div className="flex items-center text-sm text-gray-600">
+                                                        <span className="mr-3">📧</span>
+                                                        <span className="truncate">{user.email}</span>
+                                                    </div>
+                                                    {user.phoneNumber && (
+                                                        <div className="flex items-center text-sm text-gray-600">
+                                                            <span className="mr-3">�</span>
+                                                            <span>{user.phoneNumber}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Logout Button */}
+                                                <Button
+                                                    variant="outline"
+                                                    className="w-full justify-start px-0 py-3 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 hover:border-red-300 transition-colors"
+                                                    onClick={handleSignOut}
+                                                >
+                                                    <LogOut className="w-4 h-4 mr-3" />
+                                                    Sair da conta
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* Login CTA for non-authenticated users */}
+                                                <div className="text-center space-y-4">
+                                                    <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                                                        <User className="w-8 h-8 text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                                            Bem-vindo!
+                                                        </h3>
+                                                        <p className="text-sm text-gray-600 mb-4">
+                                                            Entre na sua conta para acessar dietas personalizadas e muito mais.
+                                                        </p>
+                                                    </div>
+                                                    <Button
+                                                        onClick={() => {
+                                                            setAuthModalMode('signin');
+                                                            setShowAuthModal(true);
+                                                            setIsOpen(false);
+                                                        }}
+                                                        className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200"
+                                                    >
+                                                        Já possuo uma conta
+                                                    </Button>
+                                                </div>
+                                            </>
+                                        )
+                                    )}
                                 </div>
                             </div>
                         </SheetContent>
                     </Sheet>
                 </div>
             </div>
+
+            {/* Auth Modal */}
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                onSuccess={handleAuthSuccess}
+                selectedPlan=""
+                planName=""
+                initialMode={authModalMode}
+            />
         </header>
     )
 }
