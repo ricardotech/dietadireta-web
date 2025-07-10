@@ -154,7 +154,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
                 {isForgotPassword ? 'Esqueci minha senha' : isSignUp ? 'Criar Conta' : 'Fazer Login'}
               </h2>
               <p className="text-sm text-gray-600">
-                {isForgotPassword ? 'Digite seu email para redefinir' : 'Para finalizar sua compra'}
+                {isForgotPassword ? 'Digite seu email para redefinir' : 'Para acessar sua dieta completa'}
               </p>
             </div>
           </div>
