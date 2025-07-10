@@ -451,7 +451,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
             )}
           </div>
 
-          <div className="mt-4 text-center">
+          {/* <div className="mt-4 text-center">
             <p className="text-xs text-gray-500">
               Ao continuar, você concorda com nossos
               <a href="#" className="text-green-600 hover:text-green-700 mx-1">
@@ -462,7 +462,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
                 Política de Privacidade
               </a>
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
