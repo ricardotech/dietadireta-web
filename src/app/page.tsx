@@ -192,16 +192,13 @@ function Header() {
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center">
+
+                    <div>
                       <img
                         src="/logo.png"
                         alt="Logo"
-                        className="h-6 w-auto"
+                        className="w-[70%]"
                       />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-900">DietaBox</h2>
-                      <p className="text-xs text-gray-600">Sua alimentação ideal</p>
                     </div>
                   </div>
                   <Button
@@ -238,8 +235,16 @@ function Header() {
                   ) : (
                     // Non-authenticated user - empty navigation or welcome message
                     <div className="px-6 py-8 text-center">
-                      <div className="text-gray-500 text-sm mb-4">
-                        Faça login para acessar todas as funcionalidades
+                      <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                        <User className="w-8 h-8 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="mt-4 text-lg font-semibold text-gray-900 mb-2">
+                          Bem-vindo!
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                          Entre na sua conta para acessar dietas personalizadas e muito mais.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -289,17 +294,7 @@ function Header() {
                       <>
                         {/* Login CTA for non-authenticated users */}
                         <div className="text-center space-y-4">
-                          <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                            <User className="w-8 h-8 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                              Bem-vindo!
-                            </h3>
-                            <p className="text-sm text-gray-600 mb-4">
-                              Entre na sua conta para acessar dietas personalizadas e muito mais.
-                            </p>
-                          </div>
+
                           <Button
                             onClick={() => {
                               setAuthModalMode('signin');
@@ -469,8 +464,8 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                         type="button"
                         onClick={() => field.onChange(objective.value)}
                         className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === objective.value
-                            ? 'border-green-500 bg-green-50 text-green-700'
-                            : 'border-gray-200 bg-white hover:border-gray-300'
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                       >
                         <div className="text-2xl mb-2">{objective.emoji}</div>
@@ -1015,7 +1010,7 @@ function DietaPersonalizada({
         afternoonSnack: [],
         dinner: []
       };
-      
+
       // Simple parsing for common meal patterns
       const parseSection = (sectionName: string, aliasNames: string[] = []) => {
         const allNames = [sectionName, ...aliasNames];
@@ -1051,7 +1046,7 @@ function DietaPersonalizada({
 
       // If no structured data found, use the full response as notes
       const hasStructuredData = Object.values(meals).some(meal => meal.length > 0);
-      
+
       if (!hasStructuredData) {
         // Fallback: show the full AI response as notes
         return {
@@ -1100,7 +1095,7 @@ function DietaPersonalizada({
     isCompleted: boolean;
   }) => (
     <div className={`flex items-center p-4 rounded-lg transition-all duration-500 ${isActive ? 'bg-green-50 border-2 border-green-200' :
-        isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-gray-50 border-2 border-gray-200'
+      isCompleted ? 'bg-green-100 border-2 border-green-300' : 'bg-gray-50 border-2 border-gray-200'
       }`}>
       <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-4 transition-all duration-500 ${isCompleted ? 'bg-green-500' : isActive ? 'bg-green-200' : 'bg-gray-300'
         }`}>
