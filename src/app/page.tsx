@@ -2,15 +2,13 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy, Download, Loader2 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, Controller, Control, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FoodSelector } from "@/components/FoodSelector";
-import { DietCreationFlow } from "@/components/DietCreationFlow";
 import { Badge } from "@/components/ui/badge";
 import { AuthModal } from "@/components/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -337,16 +335,6 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
     { value: "ganhar_massa", emoji: "💪", label: "Ganhar Massa Muscular" },
   ];
 
-  const calories = [
-    { value: "0", emoji: "❓", label: "Não sei dizer" },
-    { value: "1200", emoji: "🔥", label: "1200 kcal" },
-    { value: "1500", emoji: "🔥", label: "1500 kcal" },
-    { value: "1800", emoji: "🔥", label: "1800 kcal" },
-    { value: "2000", emoji: "🔥", label: "2000 kcal" },
-    { value: "2200", emoji: "🔥", label: "2200 kcal" },
-    { value: "2500", emoji: "🔥", label: "2500 kcal" },
-    { value: "3000", emoji: "🔥", label: "3000 kcal" },
-  ];
 
   // const schedules = [
   //   { value: "custom", label: "Tenho meu próprio horário" },
@@ -557,7 +545,6 @@ function DietaPersonalizada({
   onClick,
   isSubmitting,
   currentStep,
-  onUnlock,
   onLoadingComplete,
   onPaymentSuccess,
   formData
@@ -565,7 +552,6 @@ function DietaPersonalizada({
   onClick: () => void,
   isSubmitting: boolean,
   currentStep: 'form' | 'loading' | 'preview',
-  onUnlock: () => void,
   onLoadingComplete: () => void,
   onPaymentSuccess: () => void,
   formData?: FormData
@@ -970,17 +956,64 @@ function DietaPersonalizada({
         // Payment confirmed successfully
         setIsPaymentConfirmed(true);
         setShowPaymentModal(false);
-
+        
         // If diet is ready, parse and set the diet data
         if (paymentStatus.data?.aiResponse) {
+          console.log('Processing AI response:', paymentStatus.data.aiResponse);
           const parsedDiet = parseDietResponse(paymentStatus.data.aiResponse);
+          console.log('Parsed diet data:', parsedDiet);
           setDietData(parsedDiet);
           toast.success('Pagamento confirmado! Sua dieta personalizada está pronta.');
         } else if (paymentStatus.processing) {
           toast.success('Pagamento confirmado! Sua dieta está sendo gerada...');
+          // Keep existing diet data or set fallback if none exists
+          if (!dietData || !dietData.breakfast) {
+            setDietData({
+              breakfast: [
+                { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
+                { name: "Café com Leite", quantity: "200ml", calories: 80 },
+                { name: "Banana", quantity: "1 unidade", calories: 90 }
+              ],
+              lunch: [
+                { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+                { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+                { name: "Feijão", quantity: "2 colheres", calories: 140 }
+              ],
+              dinner: [
+                { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+                { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+                { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+              ],
+              totalCalories: 1980,
+              notes: "Sua dieta está sendo gerada. Esta é uma prévia que será substituída pela sua dieta personalizada em breve."
+            });
+          }
+        } else {
+          // Fallback - payment confirmed but no AI response yet
+          toast.success('Pagamento confirmado! Sua dieta estará disponível em breve.');
+          // Keep existing diet data or set fallback if none exists
+          if (!dietData || !dietData.breakfast) {
+            setDietData({
+              breakfast: [
+                { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
+                { name: "Café com Leite", quantity: "200ml", calories: 80 },
+                { name: "Banana", quantity: "1 unidade", calories: 90 }
+              ],
+              lunch: [
+                { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+                { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+                { name: "Feijão", quantity: "2 colheres", calories: 140 }
+              ],
+              dinner: [
+                { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+                { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+                { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+              ],
+              totalCalories: 1980,
+              notes: "Sua dieta personalizada foi liberada! Acompanhe as refeições sugeridas e lembre-se de beber bastante água."
+            });
+          }
         }
-
-        onPaymentSuccess();
       } else {
         // Payment not confirmed yet
         toast.error('Pagamento ainda não foi confirmado. Tente novamente em alguns minutos.');
@@ -996,7 +1029,72 @@ function DietaPersonalizada({
   // Function to parse AI diet response into structured data
   const parseDietResponse = (aiResponse: string) => {
     try {
-      // Try to extract structured meal data from the AI response
+      console.log('Parsing AI response:', aiResponse);
+      
+      // First, try to parse as JSON (new format with JSON mode)
+      try {
+        // Clean the response - remove any markdown code blocks or extra text
+        let cleanResponse = aiResponse.trim();
+        
+        // Remove markdown code blocks if present
+        if (cleanResponse.startsWith('```json')) {
+          cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanResponse.startsWith('```')) {
+          cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        // Try direct JSON parse first (for JSON mode responses)
+        let jsonData;
+        try {
+          jsonData = JSON.parse(cleanResponse);
+        } catch {
+          // If direct parse fails, try to find JSON in the response
+          const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonData = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('No JSON found in response');
+          }
+        }
+        
+        // Validate that we have the expected structure with required fields
+        if (jsonData && typeof jsonData === 'object' &&
+            jsonData.breakfast && Array.isArray(jsonData.breakfast) && 
+            jsonData.lunch && Array.isArray(jsonData.lunch) && 
+            jsonData.dinner && Array.isArray(jsonData.dinner)) {
+          
+          console.log('Successfully parsed JSON diet data:', jsonData);
+          
+          // Ensure all meal arrays have exactly 3 items or fill with placeholders
+          const ensureThreeItems = (mealArray: any[], mealName: string) => {
+            if (!Array.isArray(mealArray)) return [];
+            const items = mealArray.slice(0, 3); // Take first 3 items
+            while (items.length < 3) {
+              items.push({
+                name: `Opção ${items.length + 1} de ${mealName}`,
+                quantity: "Conforme orientação",
+                calories: 0
+              });
+            }
+            return items;
+          };
+          
+          return {
+            breakfast: ensureThreeItems(jsonData.breakfast, 'café da manhã'),
+            morningSnack: ensureThreeItems(jsonData.morningSnack || [], 'lanche da manhã'),
+            lunch: ensureThreeItems(jsonData.lunch, 'almoço'),
+            afternoonSnack: ensureThreeItems(jsonData.afternoonSnack || [], 'lanche da tarde'),
+            dinner: ensureThreeItems(jsonData.dinner, 'jantar'),
+            totalCalories: jsonData.totalCalories || 0,
+            notes: jsonData.notes || 'Sua dieta personalizada foi criada com base nas suas preferências alimentares.',
+            fullResponse: aiResponse
+          };
+        }
+      } catch (jsonError) {
+        console.log('JSON parsing failed, falling back to text parsing:', jsonError);
+      }
+
+      // Fallback: try to extract structured meal data from text format
       const meals: {
         breakfast: Array<{ name: string; quantity: string; calories: number }>;
         morningSnack: Array<{ name: string; quantity: string; calories: number }>;
@@ -1027,7 +1125,8 @@ function DietaPersonalizada({
                   quantity: "Conforme orientação",
                   calories: 0
                 };
-              });
+              })
+              .slice(0, 3); // Limit to 3 items per meal
             return items;
           }
         }
@@ -1044,44 +1143,49 @@ function DietaPersonalizada({
       const caloriesMatch = aiResponse.match(/(\d+)\s*(?:kcal|cal|calorias)/i);
       const totalCalories = caloriesMatch ? parseInt(caloriesMatch[1]) : 0;
 
-      // If no structured data found, use the full response as notes
+      // If we found some structured data, return it
       const hasStructuredData = Object.values(meals).some(meal => meal.length > 0);
 
-      if (!hasStructuredData) {
-        // Fallback: show the full AI response as notes
+      if (hasStructuredData) {
         return {
-          breakfast: [
-            { name: "Plano nutricional personalizado", quantity: "Veja detalhes abaixo", calories: 0 }
-          ],
-          lunch: [],
-          dinner: [],
+          breakfast: meals.breakfast,
+          morningSnack: meals.morningSnack,
+          lunch: meals.lunch,
+          afternoonSnack: meals.afternoonSnack,
+          dinner: meals.dinner,
           totalCalories: totalCalories,
           notes: aiResponse,
           fullResponse: aiResponse
         };
       }
 
+      // Final fallback: show the full AI response as notes with minimal structure
+      console.log('No structured data found, using full response as notes');
       return {
-        breakfast: meals.breakfast,
-        morningSnack: meals.morningSnack,
-        lunch: meals.lunch,
-        afternoonSnack: meals.afternoonSnack,
-        dinner: meals.dinner,
+        breakfast: [
+          { name: "Plano nutricional personalizado", quantity: "Veja detalhes abaixo", calories: 0 }
+        ],
+        morningSnack: [],
+        lunch: [],
+        afternoonSnack: [],
+        dinner: [],
         totalCalories: totalCalories,
         notes: aiResponse,
         fullResponse: aiResponse
       };
     } catch (error) {
       console.error('Error parsing diet response:', error);
-      // Fallback to displaying the full response
+      // Ultimate fallback
       return {
         breakfast: [
-          { name: "Plano nutricional personalizado", quantity: "Veja detalhes abaixo", calories: 0 }
+          { name: "Erro ao processar dieta", quantity: "Veja detalhes abaixo", calories: 0 }
         ],
+        morningSnack: [],
         lunch: [],
+        afternoonSnack: [],
         dinner: [],
         totalCalories: 0,
-        notes: aiResponse,
+        notes: aiResponse || "Erro ao carregar dados da dieta.",
         fullResponse: aiResponse
       };
     }
@@ -1616,7 +1720,14 @@ function DietaPersonalizada({
                   disabled={isCheckingPayment}
                   className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3"
                 >
-                  {isCheckingPayment ? 'Verificando pagamento...' : 'Já realizei o pagamento'}
+                  {isCheckingPayment ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Verificando pagamento...
+                    </div>
+                  ) : (
+                    'Já realizei o pagamento'
+                  )}
                 </Button>
                 <Button
                   onClick={() => setShowPaymentModal(false)}
@@ -1766,23 +1877,17 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleUnlock = () => {
-    // Start the loading/generation process when user clicks unlock
-    setDietStep('loading');
-  };
-
   const handleLoadingComplete = () => {
     // When loading completes, go to preview step
     setDietStep('preview');
   };
 
   const handlePaymentSuccess = () => {
+    // This function is called when payment is confirmed
+    // We don't reset anything - just show success message
     toast.success('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
-    // Clear saved form data since process is complete
-    localStorage.removeItem('dietabox-form-data');
-    localStorage.removeItem('dietabox-diet-step');
-    // Reset to form for demo purposes
-    setDietStep('form');
+    // Keep the user on the preview step to see their diet
+    // Don't clear form data or reset step
   };
 
   return (
@@ -1878,7 +1983,6 @@ function App() {
           onClick={handleSubmit(onSubmit, onInvalidSubmit)}
           isSubmitting={isSubmitting}
           currentStep={dietStep}
-          onUnlock={handleUnlock}
           onLoadingComplete={handleLoadingComplete}
           onPaymentSuccess={handlePaymentSuccess}
           formData={submittedFormData || undefined}
