@@ -69,12 +69,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
         cpf: data.cpf,
         password: data.password,
       };
-      
+
       // Only include phoneNumber if it has content
       if (data.phoneNumber && data.phoneNumber.trim() !== '') {
         signUpData.phoneNumber = data.phoneNumber;
       }
-      
+
       const result = await register(signUpData as SignUpData);
       if (!result.error) {
         // Close the modal immediately after successful registration
@@ -169,21 +169,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, selectedPlan, planName, 
         </div>
 
         <div className="p-6">
-          {/* Selected Plan Info - Only show in purchase flow (signup mode), not for general signin */}
-          {!isForgotPassword && initialMode === 'signup' && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-semibold text-green-900">Plano Selecionado</p>
-                  <p className="text-sm text-green-700">{planName}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <p className="text-red-700 text-sm">{error}</p>
