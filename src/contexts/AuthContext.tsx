@@ -71,8 +71,15 @@ type AuthProviderProps = {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3100";
 
 export function logout() {
+  // Remove auth tokens
   localStorage.removeItem("token");
   localStorage.removeItem("user");
+  
+  // Clear all diet related data and state
+  localStorage.removeItem("dietabox-diet-data");
+  localStorage.removeItem("dietabox-diet-step");
+  localStorage.removeItem("dietabox-form-data");
+  localStorage.removeItem("dietabox-order-data");
 }
 
 export const AuthContext = createContext({} as AuthContextData);

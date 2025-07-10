@@ -559,7 +559,8 @@ function DietaPersonalizada({
   isRegenerating,
   hasRegenerated,
   handleRegenerateDiet,
-  parseDietResponse
+  parseDietResponse,
+  setHasRegenerated
 }: {
   onClick: () => void,
   isSubmitting: boolean,
@@ -577,7 +578,8 @@ function DietaPersonalizada({
   isRegenerating: boolean,
   hasRegenerated: boolean,
   handleRegenerateDiet: () => Promise<void>,
-  parseDietResponse: (response: string) => any
+  parseDietResponse: (response: string) => any,
+  setHasRegenerated: (value: boolean) => void
 }) {
   const [loadingStep, setLoadingStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -600,6 +602,21 @@ function DietaPersonalizada({
       qualityRatio: 1
     }
   });
+
+  // Check if we should skip to diet view for logged in users with paid diet
+  const shouldShowDietDirectly = () => {
+    return user && isPaymentConfirmed && dietData && dietData.breakfast && dietData.breakfast.main && dietData.breakfast.main.length > 0;
+  };
+
+  // Skip form and preview steps if user has a paid diet
+  const getEffectiveStep = () => {
+    if (shouldShowDietDirectly()) {
+      return 'preview'; // Always show as preview but with payment confirmed
+    }
+    return currentStep;
+  };
+
+  const effectiveStep = getEffectiveStep();
 
   // Debug: Log dietData changes
   useEffect(() => {
@@ -802,48 +819,56 @@ function DietaPersonalizada({
         return null;
       }
 
-      // Prepare request body - include dietId if available, otherwise include form data
+      // Prepare request body
       const requestBody: any = {};
 
-      if (dietId) {
+      // Check if dietId is a valid UUID format
+      const isValidUUID = (uuid: string) => {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidRegex.test(uuid);
+      };
+
+      if (dietId && isValidUUID(dietId)) {
+        // If we have a valid UUID, use it
         requestBody.dietId = dietId;
-      }
+      } else {
+        // If no valid dietId, we need to create a diet first or send userData
+        // Include user information for payment processing
+        if (user) {
+          requestBody.userInfo = {
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            cpf: user.cpf,
+          };
+        }
 
-      // Always include user information for payment processing
-      if (user) {
-        requestBody.userInfo = {
-          email: user.email,
-          phoneNumber: user.phoneNumber, // Include phone number for payment gateway
-          cpf: user.cpf, // Include CPF for payment gateway
-        };
-      }
+        // Include userData for diet creation
+        if (formData) {
+          // Map frontend values to backend enum values
+          const goalMapping: Record<string, string> = {
+            'emagrecer': 'emagrecer',
+            'emagrecer_massa': 'emagrecer+massa',
+            'ganhar_massa': 'ganhar massa muscular',
+            'definicao_ganho': 'definicao muscular + ganhar massa'
+          };
 
-      // Always include userData as fallback in case dietId doesn't exist or is invalid
-      if (formData) {
-        // Map frontend values to backend enum values
-        const goalMapping: Record<string, string> = {
-          'emagrecer': 'emagrecer',
-          'emagrecer_massa': 'emagrecer+massa',
-          'ganhar_massa': 'ganhar massa muscular',
-          'definicao_ganho': 'definicao muscular + ganhar massa'
-        };
-
-        requestBody.userData = {
-          weight: formData.weight,
-          height: formData.height,
-          age: formData.age,
-          goal: goalMapping[formData.objective] || formData.objective, // Map to correct enum value
-          calories: "2000", // Default fallback
-          gender: "m", // Use correct enum value: 'm' or 'f'
-          schedule: "07:00-10:00-12:30-15:30-19:30", // Use valid schedule enum value
-          activityLevel: "moderado", // Use valid activity level enum
-          workoutPlan: "academia", // Use correct enum value: 'academia', 'casa', or 'nenhum'
-          breakfast: formData.breakfastItems.join(', ') || "pao, cafe",
-          morningSnack: formData.includeLancheManha ? (formData.morningSnackItems.join(', ') || "fruta") : "",
-          lunch: formData.lunchItems.join(', ') || "arroz, feijao, carne",
-          afternoonSnack: formData.includeLancheTarde ? (formData.afternoonSnackItems.join(', ') || "iogurte") : "",
-          dinner: formData.dinnerItems.join(', ') || "salada, proteina"
-        };
+          requestBody.userData = {
+            weight: formData.weight,
+            height: formData.height,
+            age: formData.age,
+            goal: goalMapping[formData.objective] || formData.objective,
+            calories: "2000",
+            gender: "m",
+            schedule: "07:00-10:00-12:30-15:30-19:30",
+            activityLevel: "moderado",
+            workoutPlan: "academia",
+            breakfast: formData.breakfastItems.join(', ') || "pao, cafe",
+            morningSnack: formData.includeLancheManha ? (formData.morningSnackItems.join(', ') || "fruta") : "",
+            lunch: formData.lunchItems.join(', ') || "arroz, feijao, carne",
+            afternoonSnack: formData.includeLancheTarde ? (formData.afternoonSnackItems.join(', ') || "iogurte") : "",
+            dinner: formData.dinnerItems.join(', ') || "salada, proteina"
+          };
+        }
       }
 
       console.log('Checkout request body:', requestBody);
@@ -901,24 +926,33 @@ function DietaPersonalizada({
       }
 
       const data = await response.json();
+      
+      // Verify that the response contains a status field and it equals "paid"
+      // Any other status should be considered as not paid
+      if (data && data.status && data.status !== "paid") {
+        toast.error("Pagamento ainda não confirmado. Por favor, tente novamente em alguns instantes.");
+        return { ...data, success: false };
+      }
+      
       return data;
     } catch (error) {
       console.error('Error checking payment status:', error);
+      toast.error("Erro ao verificar o pagamento. Por favor, tente novamente.");
       throw error;
     }
   };
 
   // Reset loading state when entering loading step
   useEffect(() => {
-    if (currentStep === 'loading') {
+    if (effectiveStep === 'loading') {
       setLoadingStep(0);
       setCompletedSteps([]);
     }
-  }, [currentStep]);
+  }, [effectiveStep]);
 
   // Handle loading progress with increased time
   useEffect(() => {
-    if (currentStep === 'loading') {
+    if (effectiveStep === 'loading') {
       const interval = setInterval(() => {
         setLoadingStep((prev) => {
           const nextStep = prev + 1;
@@ -962,7 +996,7 @@ function DietaPersonalizada({
 
       return () => clearInterval(interval);
     }
-  }, [currentStep, user, generateDiet, onLoadingComplete]);
+  }, [effectiveStep, user, generateDiet, onLoadingComplete]);
 
 
   // Watch for user authentication changes - only continue if we were waiting for auth
@@ -987,14 +1021,14 @@ function DietaPersonalizada({
   // Effect to handle immediate progression for already authenticated users
   useEffect(() => {
     // If user is already authenticated and we're in loading step, proceed directly to diet generation
-    if (currentStep === 'loading' && user && !shouldContinueAfterAuth && !showAuthModal) {
+    if (effectiveStep === 'loading' && user && !shouldContinueAfterAuth && !showAuthModal) {
       const token = localStorage.getItem('token');
-      if (token && currentStep === 'loading') {
+      if (token && effectiveStep === 'loading') {
         // User is authenticated, skip auth modal and proceed with diet generation
         // This will be handled by the main loading useEffect above
       }
     }
-  }, [currentStep, user, shouldContinueAfterAuth, showAuthModal]);
+  }, [effectiveStep, user, shouldContinueAfterAuth, showAuthModal]);
 
   const handleAuthSuccess = () => {
     // The useEffect above will handle the continuation
@@ -1030,24 +1064,36 @@ function DietaPersonalizada({
     setIsCheckingPayment(true);
     try {
       const paymentStatus = await checkPaymentStatus(orderData.orderId);
+      
+      console.log('Payment status response:', paymentStatus);
 
-      if (paymentStatus.success && paymentStatus.paid) {
+      // Only proceed if status is specifically "paid"
+      // Check if the order status is specifically "paid" (as per API docs)
+      if (paymentStatus.success && paymentStatus.status === "paid") {
         // Payment confirmed successfully
         setIsPaymentConfirmed(true);
         setShowPaymentModal(false);
+        
+        // Save order data to local storage for future reference
+        localStorage.setItem('dietabox-order-data', JSON.stringify(orderData));
         
         // If diet is ready, parse and set the diet data
         if (paymentStatus.data?.aiResponse) {
           console.log('Processing AI response:', paymentStatus.data.aiResponse);
           const parsedDiet = parseDietResponse(paymentStatus.data.aiResponse);
           console.log('Parsed diet data:', parsedDiet);
+          
+          // Save the diet data to localStorage
+          localStorage.setItem('dietabox-diet-data', JSON.stringify(parsedDiet));
+          
+          // Update the state
           setDietData(parsedDiet);
           toast.success('Pagamento confirmado! Sua dieta personalizada está pronta.');
         } else if (paymentStatus.processing) {
           toast.success('Pagamento confirmado! Sua dieta está sendo gerada...');
           // Keep existing diet data or set fallback if none exists
           if (!dietData || !dietData.breakfast) {
-            setDietData({
+            const fallbackData = {
               breakfast: {
                 main: [
                   { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
@@ -1088,14 +1134,17 @@ function DietaPersonalizada({
               afternoonSnack: null,
               totalCalories: 1980,
               notes: "Sua dieta está sendo gerada. Esta é uma prévia que será substituída pela sua dieta personalizada em breve."
-            });
+            };
+            
+            setDietData(fallbackData);
+            localStorage.setItem('dietabox-diet-data', JSON.stringify(fallbackData));
           }
         } else {
           // Fallback - payment confirmed but no AI response yet
           toast.success('Pagamento confirmado! Sua dieta estará disponível em breve.');
           // Keep existing diet data or set fallback if none exists
           if (!dietData || !dietData.breakfast) {
-            setDietData({
+            const fallbackData = {
               breakfast: {
                 main: [
                   { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
@@ -1136,12 +1185,36 @@ function DietaPersonalizada({
               afternoonSnack: null,
               totalCalories: 1980,
               notes: "Sua dieta personalizada foi liberada! Acompanhe as refeições sugeridas e lembre-se de beber bastante água."
-            });
+            };
+            
+            setDietData(fallbackData);
+            localStorage.setItem('dietabox-diet-data', JSON.stringify(fallbackData));
           }
         }
       } else {
-        // Payment not confirmed yet
-        toast.error('Pagamento ainda não foi confirmado. Tente novamente em alguns minutos.');
+        // Payment not confirmed yet - show specific message based on status
+        const status = paymentStatus.status || 'unknown';
+        const message = paymentStatus.message || 'Status desconhecido';
+        
+        console.log('Payment not confirmed. Status:', status, 'Message:', message);
+        
+        // Show appropriate toast message based on status
+        switch (status) {
+          case 'pending':
+            toast.warning('Aguardando confirmação do pagamento PIX. Tente novamente em alguns minutos.');
+            break;
+          case 'failed':
+            toast.error('Pagamento falhou. Tente gerar um novo PIX.');
+            break;
+          case 'canceled':
+            toast.error('Pagamento foi cancelado. Tente gerar um novo PIX.');
+            break;
+          case 'processing':
+            toast.info('Pagamento está sendo processado. Por favor, aguarde alguns instantes.');
+            break;
+          default:
+            toast.warning(message || 'Pagamento ainda não foi confirmado. Tente novamente em alguns minutos.');
+        }
       }
     } catch (error) {
       console.error('Error checking payment:', error);
@@ -1272,7 +1345,7 @@ function DietaPersonalizada({
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
       <div className="p-8">
         {/* Form Step */}
-        {currentStep === 'form' && (
+        {effectiveStep === 'form' && (
           <>
             <div className="flex items-center">
               <div className="bg-green-100 rounded-lg flex items-center justify-center mr-3 p-2">
@@ -1325,7 +1398,7 @@ function DietaPersonalizada({
         )}
 
         {/* Loading Step */}
-        {currentStep === 'loading' && (
+        {effectiveStep === 'loading' && (
           <>
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
@@ -1396,57 +1469,70 @@ function DietaPersonalizada({
         )}
 
         {/* Preview Step */}
-        {currentStep === 'preview' && (
+        {effectiveStep === 'preview' && (
           <>
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Está Pronta!</h1>
-              <p className="text-gray-600">Veja um preview do que preparamos para você</p>
-            </div>
-
-            <div className="bg-green-50 p-4 rounded-lg mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-800">Plano Nutricional Personalizado</h3>
-                <Badge className="bg-green-100 text-green-800">
-                  {displayDietData.totalCalories} cal/dia
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <MealPreviewCard
-                  title="Café da Manhã"
-                  mealData={displayDietData.breakfast}
-                  showMore={true}
-                  isBlurred={!isPaymentConfirmed}
-                />
-                <MealPreviewCard
-                  title="Almoço"
-                  mealData={displayDietData.lunch}
-                  showMore={true}
-                  isBlurred={!isPaymentConfirmed}
-                />
-                <MealPreviewCard
-                  title="Jantar"
-                  mealData={displayDietData.dinner}
-                  showMore={true}
-                  isBlurred={!isPaymentConfirmed}
-                />
-              </div>
-
-              {!isPaymentConfirmed && (
-                <div className="bg-white/50 p-3 rounded-lg">
-                  <div className="flex items-center text-gray-600">
-                    <Lock className="w-4 h-4 mr-2" />
-                    <span className="text-sm">Desbloquear para ver dieta completa com horários e quantidades detalhadas</span>
-                  </div>
+            {shouldShowDietDirectly() && (
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-white" />
                 </div>
-              )}
-            </div>
+                <h1 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Personalizada</h1>
+                <p className="text-gray-600">Bem-vindo de volta! Aqui está sua dieta paga</p>
+              </div>
+            )}
 
-            <div className="text-center">
-              {!isPaymentConfirmed ? (
+            {!shouldShowDietDirectly() && (
+              <>
+                <div className="text-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <h1 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Está Pronta!</h1>
+                  <p className="text-gray-600">Veja um preview do que preparamos para você</p>
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-gray-800">Plano Nutricional Personalizado</h3>
+                    <Badge className="bg-green-100 text-green-800">
+                      {displayDietData.totalCalories} cal/dia
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <MealPreviewCard
+                      title="Café da Manhã"
+                      mealData={displayDietData.breakfast}
+                      showMore={true}
+                      isBlurred={!isPaymentConfirmed}
+                    />
+                    <MealPreviewCard
+                      title="Almoço"
+                      mealData={displayDietData.lunch}
+                      showMore={true}
+                      isBlurred={!isPaymentConfirmed}
+                    />
+                    <MealPreviewCard
+                      title="Jantar"
+                      mealData={displayDietData.dinner}
+                      showMore={true}
+                      isBlurred={!isPaymentConfirmed}
+                    />
+                  </div>
+
+                  {!isPaymentConfirmed && (
+                    <div className="bg-white/50 p-3 rounded-lg">
+                      <div className="flex items-center text-gray-600">
+                        <Lock className="w-4 h-4 mr-2" />
+                        <span className="text-sm">Desbloquear para ver dieta completa com horários e quantidades detalhadas</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div className="text-center">{!isPaymentConfirmed ? (
                 <Button
                   onClick={async () => {
                     console.log('Desbloquear button clicked');
@@ -1518,6 +1604,37 @@ function DietaPersonalizada({
                             className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg"
                           >
                             Gerar outra dieta
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Create New Diet Button - Show for users who already have a paid diet */}
+                    {shouldShowDietDirectly() && (
+                      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg text-left font-semibold text-blue-800">Quer uma nova dieta?</h3>
+                            <p className="text-sm text-blue-700">Você pode criar uma nova dieta com novas preferências</p>
+                          </div>
+                          <Button
+                            onClick={() => {
+                              // Reset states to allow new diet creation
+                              setIsPaymentConfirmed(false);
+                              setDietData(null);
+                              setHasRegenerated(false);
+                              setShowRegenerateInput(false);
+                              setRegenerateFeedback('');
+                              // Clear localStorage
+                              localStorage.removeItem('dietabox-diet-data');
+                              localStorage.removeItem('dietabox-diet-step');
+                              localStorage.removeItem('dietabox-form-data');
+                              // Reload page to restart the flow
+                              window.location.reload();
+                            }}
+                            className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg"
+                          >
+                            Criar nova dieta
                           </Button>
                         </div>
                       </div>
@@ -1842,7 +1959,7 @@ function DietaPersonalizada({
                 </div>
               )}
 
-              {!isPaymentConfirmed && (
+              {!isPaymentConfirmed && !shouldShowDietDirectly() && (
                 <p className="text-sm text-gray-500 mt-4">
                   {user ? (
                     <>
@@ -2316,94 +2433,114 @@ function App() {
     }
   };
 
+  // Determine if we should show the selection options or just the diet
+  const shouldShowSelectionOptions = () => {
+    // If user is not logged in, always show selection options
+    if (!user) {
+      return true;
+    }
+    
+    // If user is logged in but we don't have a paid diet with generated data, show selection options
+    if (!isPaymentConfirmed || !dietData || !dietData.breakfast || !dietData.breakfast.main || dietData.breakfast.main.length === 0) {
+      return true;
+    }
+    
+    // If user is logged in and has a paid diet with generated data, hide selection options
+    return false;
+  };
+
   return (
     <main className="bg-[#F9FAFB]">
       <Header />
       <div className="h-[70px]"></div>
 
       <div className="py-8 px-4 space-y-8">
-        <MedidasCorporais control={control} errors={errors} />
+        {shouldShowSelectionOptions() && (
+          <>
+            <MedidasCorporais control={control} errors={errors} />
 
-        <FoodSelector
-          title="Café da manhã"
-          isIncluded={true}
-          foods={foodData.breakfast}
-          selectedItems={watch("breakfastItems") || []}
-          onChange={(items) => {
-            setValue("breakfastItems", items);
-            if (items.length > 0) handleMealSectionFocus("breakfast");
-          }}
-          error={mealValidationErrors.breakfast}
-          isMinimized={shouldMinimize("breakfast")}
-          onExpand={() => handleMealSectionExpand("breakfast")}
-          isRequired={true}
-        />
+            <FoodSelector
+              title="Café da manhã"
+              isIncluded={true}
+              foods={foodData.breakfast}
+              selectedItems={watch("breakfastItems") || []}
+              onChange={(items) => {
+                setValue("breakfastItems", items);
+                if (items.length > 0) handleMealSectionFocus("breakfast");
+              }}
+              error={mealValidationErrors.breakfast}
+              isMinimized={shouldMinimize("breakfast")}
+              onExpand={() => handleMealSectionExpand("breakfast")}
+              isRequired={true}
+            />
 
-        <FoodSelector
-          title="Lanche da manhã"
-          isIncluded={watch("includeLancheManha") || false}
-          onToggleInclude={(included) => {
-            setValue("includeLancheManha", included);
-            if (included) handleMealSectionFocus("morningSnack");
-          }}
-          foods={foodData.morningSnack}
-          selectedItems={watch("morningSnackItems") || []}
-          onChange={(items) => {
-            setValue("morningSnackItems", items);
-            if (items.length > 0) handleMealSectionFocus("morningSnack");
-          }}
-          error={mealValidationErrors.morningSnack}
-          isMinimized={shouldMinimize("morningSnack")}
-          onExpand={() => handleMealSectionExpand("morningSnack")}
-        />
+            <FoodSelector
+              title="Lanche da manhã"
+              isIncluded={watch("includeLancheManha") || false}
+              onToggleInclude={(included) => {
+                setValue("includeLancheManha", included);
+                if (included) handleMealSectionFocus("morningSnack");
+              }}
+              foods={foodData.morningSnack}
+              selectedItems={watch("morningSnackItems") || []}
+              onChange={(items) => {
+                setValue("morningSnackItems", items);
+                if (items.length > 0) handleMealSectionFocus("morningSnack");
+              }}
+              error={mealValidationErrors.morningSnack}
+              isMinimized={shouldMinimize("morningSnack")}
+              onExpand={() => handleMealSectionExpand("morningSnack")}
+            />
 
-        <FoodSelector
-          title="Almoço"
-          isIncluded={true}
-          foods={foodData.lunch}
-          selectedItems={watch("lunchItems") || []}
-          onChange={(items) => {
-            setValue("lunchItems", items);
-            if (items.length > 0) handleMealSectionFocus("lunch");
-          }}
-          error={mealValidationErrors.lunch}
-          isMinimized={shouldMinimize("lunch")}
-          onExpand={() => handleMealSectionExpand("lunch")}
-          isRequired={true}
-        />
+            <FoodSelector
+              title="Almoço"
+              isIncluded={true}
+              foods={foodData.lunch}
+              selectedItems={watch("lunchItems") || []}
+              onChange={(items) => {
+                setValue("lunchItems", items);
+                if (items.length > 0) handleMealSectionFocus("lunch");
+              }}
+              error={mealValidationErrors.lunch}
+              isMinimized={shouldMinimize("lunch")}
+              onExpand={() => handleMealSectionExpand("lunch")}
+              isRequired={true}
+            />
 
-        <FoodSelector
-          title="Lanche da tarde"
-          isIncluded={watch("includeLancheTarde") || false}
-          onToggleInclude={(included) => {
-            setValue("includeLancheTarde", included);
-            if (included) handleMealSectionFocus("afternoonSnack");
-          }}
-          foods={foodData.afternoonSnack}
-          selectedItems={watch("afternoonSnackItems") || []}
-          onChange={(items) => {
-            setValue("afternoonSnackItems", items);
-            if (items.length > 0) handleMealSectionFocus("afternoonSnack");
-          }}
-          error={mealValidationErrors.afternoonSnack}
-          isMinimized={shouldMinimize("afternoonSnack")}
-          onExpand={() => handleMealSectionExpand("afternoonSnack")}
-        />
+            <FoodSelector
+              title="Lanche da tarde"
+              isIncluded={watch("includeLancheTarde") || false}
+              onToggleInclude={(included) => {
+                setValue("includeLancheTarde", included);
+                if (included) handleMealSectionFocus("afternoonSnack");
+              }}
+              foods={foodData.afternoonSnack}
+              selectedItems={watch("afternoonSnackItems") || []}
+              onChange={(items) => {
+                setValue("afternoonSnackItems", items);
+                if (items.length > 0) handleMealSectionFocus("afternoonSnack");
+              }}
+              error={mealValidationErrors.afternoonSnack}
+              isMinimized={shouldMinimize("afternoonSnack")}
+              onExpand={() => handleMealSectionExpand("afternoonSnack")}
+            />
 
-        <FoodSelector
-          title="Jantar"
-          isIncluded={true}
-          foods={foodData.dinner}
-          selectedItems={watch("dinnerItems") || []}
-          onChange={(items) => {
-            setValue("dinnerItems", items);
-            if (items.length > 0) handleMealSectionFocus("dinner");
-          }}
-          error={mealValidationErrors.dinner}
-          isMinimized={shouldMinimize("dinner")}
-          onExpand={() => handleMealSectionExpand("dinner")}
-          isRequired={true}
-        />
+            <FoodSelector
+              title="Jantar"
+              isIncluded={true}
+              foods={foodData.dinner}
+              selectedItems={watch("dinnerItems") || []}
+              onChange={(items) => {
+                setValue("dinnerItems", items);
+                if (items.length > 0) handleMealSectionFocus("dinner");
+              }}
+              error={mealValidationErrors.dinner}
+              isMinimized={shouldMinimize("dinner")}
+              onExpand={() => handleMealSectionExpand("dinner")}
+              isRequired={true}
+            />
+          </>
+        )}
 
         <DietaPersonalizada
           onClick={handleSubmit(onSubmit, onInvalidSubmit)}
@@ -2423,6 +2560,7 @@ function App() {
           hasRegenerated={hasRegenerated}
           handleRegenerateDiet={handleRegenerateDiet}
           parseDietResponse={parseDietResponse}
+          setHasRegenerated={setHasRegenerated}
         />
       </div>
     </main>
