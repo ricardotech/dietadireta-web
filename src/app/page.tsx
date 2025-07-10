@@ -14,6 +14,7 @@ import { AuthModal } from "@/components/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePDF } from 'react-to-pdf';
 import { toast } from "sonner";
+import { DietPDFComponent } from "@/components/DietPDFComponent";
 
 // Form validation schema
 const formSchema = z.object({
@@ -546,28 +547,59 @@ function DietaPersonalizada({
   isSubmitting,
   currentStep,
   onLoadingComplete,
-  onPaymentSuccess,
-  formData
+  formData,
+  dietData,
+  setDietData,
+  isPaymentConfirmed,
+  setIsPaymentConfirmed,
+  showRegenerateInput,
+  setShowRegenerateInput,
+  regenerateFeedback,
+  setRegenerateFeedback,
+  isRegenerating,
+  hasRegenerated,
+  handleRegenerateDiet,
+  parseDietResponse
 }: {
   onClick: () => void,
   isSubmitting: boolean,
   currentStep: 'form' | 'loading' | 'preview',
   onLoadingComplete: () => void,
-  onPaymentSuccess: () => void,
-  formData?: FormData
+  formData?: FormData,
+  dietData: any,
+  setDietData: (data: any) => void,
+  isPaymentConfirmed: boolean,
+  setIsPaymentConfirmed: (confirmed: boolean) => void,
+  showRegenerateInput: boolean,
+  setShowRegenerateInput: (show: boolean) => void,
+  regenerateFeedback: string,
+  setRegenerateFeedback: (feedback: string) => void,
+  isRegenerating: boolean,
+  hasRegenerated: boolean,
+  handleRegenerateDiet: () => Promise<void>,
+  parseDietResponse: (response: string) => any
 }) {
   const [loadingStep, setLoadingStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [dietData, setDietData] = useState<any>(null);
-  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [shouldContinueAfterAuth, setShouldContinueAfterAuth] = useState(false);
   const { user } = useAuth();
-  const { toPDF, targetRef } = usePDF({ filename: 'minha-dieta-personalizada.pdf' });
+  const { toPDF, targetRef } = usePDF({ 
+    filename: 'minha-dieta-personalizada.pdf',
+    page: {
+      margin: 10,
+      format: 'a4',
+      orientation: 'portrait',
+    },
+    canvas: {
+      mimeType: 'image/jpeg',
+      qualityRatio: 1
+    }
+  });
 
   // Debug: Log dietData changes
   useEffect(() => {
@@ -637,9 +669,9 @@ function DietaPersonalizada({
           activityLevel: 'moderado', // Fixed: use valid activity level enum
           workoutPlan: 'nenhum', // Fixed: use valid workout plan enum
           breakfast: formData?.breakfastItems?.join(', ') || 'ovos, aveia, frutas',
-          morningSnack: formData?.morningSnackItems?.join(', ') || 'frutas, castanhas',
+          morningSnack: formData?.includeLancheManha ? (formData?.morningSnackItems?.join(', ') || 'frutas, castanhas') : '',
           lunch: formData?.lunchItems?.join(', ') || 'frango, arroz, verduras',
-          afternoonSnack: formData?.afternoonSnackItems?.join(', ') || 'iogurte, frutas',
+          afternoonSnack: formData?.includeLancheTarde ? (formData?.afternoonSnackItems?.join(', ') || 'iogurte, frutas') : '',
           dinner: formData?.dinnerItems?.join(', ') || 'peixe, batata, salada',
         }),
       });
@@ -661,21 +693,44 @@ function DietaPersonalizada({
         setDietData({
           dietId: data.data.dietId,
           // Initialize with preview data
-          breakfast: [
-            { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
-            { name: "Café com Leite", quantity: "200ml", calories: 80 },
-            { name: "Banana", quantity: "1 unidade", calories: 90 }
-          ],
-          lunch: [
-            { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-            { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-            { name: "Brócolis", quantity: "1 xícara", calories: 55 }
-          ],
-          dinner: [
-            { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-            { name: "Batata Doce", quantity: "1 unidade pequena", calories: 120 },
-            { name: "Salada Verde", quantity: "1 prato", calories: 50 }
-          ],
+          breakfast: {
+            main: [
+              { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
+              { name: "Café com Leite", quantity: "200ml", calories: 80 },
+              { name: "Banana", quantity: "1 unidade", calories: 90 }
+            ],
+            alternatives: [
+              { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
+              { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
+              { name: "Maçã", quantity: "1 unidade", calories: 95 }
+            ]
+          },
+          lunch: {
+            main: [
+              { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+              { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+              { name: "Brócolis", quantity: "1 xícara", calories: 55 }
+            ],
+            alternatives: [
+              { name: "Peixe Assado", quantity: "150g", calories: 320 },
+              { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
+              { name: "Couve Refogada", quantity: "1 porção", calories: 50 }
+            ]
+          },
+          dinner: {
+            main: [
+              { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+              { name: "Batata Doce", quantity: "1 unidade pequena", calories: 120 },
+              { name: "Salada Verde", quantity: "1 prato", calories: 50 }
+            ],
+            alternatives: [
+              { name: "Peito de Peru", quantity: "120g", calories: 275 },
+              { name: "Quinoa", quantity: "3 colheres", calories: 125 },
+              { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
+            ]
+          },
+          morningSnack: null,
+          afternoonSnack: null,
           totalCalories: 1425
         });
         console.log('dietData set successfully');
@@ -689,21 +744,44 @@ function DietaPersonalizada({
       // Fallback to mock data if API fails
       const mockData = {
         dietId: 'fallback-diet-id',
-        breakfast: [
-          { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
-          { name: "Café com Leite", quantity: "200ml", calories: 80 },
-          { name: "Banana", quantity: "1 unidade", calories: 90 }
-        ],
-        lunch: [
-          { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-          { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-          { name: "Feijão", quantity: "2 colheres", calories: 140 }
-        ],
-        dinner: [
-          { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-          { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-          { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-        ],
+        breakfast: {
+          main: [
+            { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
+            { name: "Café com Leite", quantity: "200ml", calories: 80 },
+            { name: "Banana", quantity: "1 unidade", calories: 90 }
+          ],
+          alternatives: [
+            { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
+            { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
+            { name: "Maçã", quantity: "1 unidade", calories: 95 }
+          ]
+        },
+        lunch: {
+          main: [
+            { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+            { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+            { name: "Feijão", quantity: "2 colheres", calories: 140 }
+          ],
+          alternatives: [
+            { name: "Peixe Assado", quantity: "150g", calories: 320 },
+            { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
+            { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
+          ]
+        },
+        dinner: {
+          main: [
+            { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+            { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+            { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+          ],
+          alternatives: [
+            { name: "Peito de Peru", quantity: "120g", calories: 275 },
+            { name: "Quinoa", quantity: "3 colheres", calories: 125 },
+            { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
+          ]
+        },
+        morningSnack: null,
+        afternoonSnack: null,
         totalCalories: 1980,
         notes: "Lembre-se de beber pelo menos 2 litros de água por dia e fazer as refeições nos horários indicados."
       };
@@ -761,9 +839,9 @@ function DietaPersonalizada({
           activityLevel: "moderado", // Use valid activity level enum
           workoutPlan: "academia", // Use correct enum value: 'academia', 'casa', or 'nenhum'
           breakfast: formData.breakfastItems.join(', ') || "pao, cafe",
-          morningSnack: formData.morningSnackItems.join(', ') || "fruta",
+          morningSnack: formData.includeLancheManha ? (formData.morningSnackItems.join(', ') || "fruta") : "",
           lunch: formData.lunchItems.join(', ') || "arroz, feijao, carne",
-          afternoonSnack: formData.afternoonSnackItems.join(', ') || "iogurte",
+          afternoonSnack: formData.includeLancheTarde ? (formData.afternoonSnackItems.join(', ') || "iogurte") : "",
           dinner: formData.dinnerItems.join(', ') || "salada, proteina"
         };
       }
@@ -886,6 +964,7 @@ function DietaPersonalizada({
     }
   }, [currentStep, user, generateDiet, onLoadingComplete]);
 
+
   // Watch for user authentication changes - only continue if we were waiting for auth
   useEffect(() => {
     if (user && shouldContinueAfterAuth && !showAuthModal) {
@@ -969,21 +1048,44 @@ function DietaPersonalizada({
           // Keep existing diet data or set fallback if none exists
           if (!dietData || !dietData.breakfast) {
             setDietData({
-              breakfast: [
-                { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
-                { name: "Café com Leite", quantity: "200ml", calories: 80 },
-                { name: "Banana", quantity: "1 unidade", calories: 90 }
-              ],
-              lunch: [
-                { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-                { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-                { name: "Feijão", quantity: "2 colheres", calories: 140 }
-              ],
-              dinner: [
-                { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-                { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-                { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-              ],
+              breakfast: {
+                main: [
+                  { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
+                  { name: "Café com Leite", quantity: "200ml", calories: 80 },
+                  { name: "Banana", quantity: "1 unidade", calories: 90 }
+                ],
+                alternatives: [
+                  { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
+                  { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
+                  { name: "Maçã", quantity: "1 unidade", calories: 95 }
+                ]
+              },
+              lunch: {
+                main: [
+                  { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+                  { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+                  { name: "Feijão", quantity: "2 colheres", calories: 140 }
+                ],
+                alternatives: [
+                  { name: "Peixe Assado", quantity: "150g", calories: 320 },
+                  { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
+                  { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
+                ]
+              },
+              dinner: {
+                main: [
+                  { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+                  { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+                  { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+                ],
+                alternatives: [
+                  { name: "Peito de Peru", quantity: "120g", calories: 275 },
+                  { name: "Quinoa", quantity: "3 colheres", calories: 125 },
+                  { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
+                ]
+              },
+              morningSnack: null,
+              afternoonSnack: null,
               totalCalories: 1980,
               notes: "Sua dieta está sendo gerada. Esta é uma prévia que será substituída pela sua dieta personalizada em breve."
             });
@@ -994,21 +1096,44 @@ function DietaPersonalizada({
           // Keep existing diet data or set fallback if none exists
           if (!dietData || !dietData.breakfast) {
             setDietData({
-              breakfast: [
-                { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
-                { name: "Café com Leite", quantity: "200ml", calories: 80 },
-                { name: "Banana", quantity: "1 unidade", calories: 90 }
-              ],
-              lunch: [
-                { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-                { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-                { name: "Feijão", quantity: "2 colheres", calories: 140 }
-              ],
-              dinner: [
-                { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-                { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-                { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-              ],
+              breakfast: {
+                main: [
+                  { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
+                  { name: "Café com Leite", quantity: "200ml", calories: 80 },
+                  { name: "Banana", quantity: "1 unidade", calories: 90 }
+                ],
+                alternatives: [
+                  { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
+                  { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
+                  { name: "Maçã", quantity: "1 unidade", calories: 95 }
+                ]
+              },
+              lunch: {
+                main: [
+                  { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+                  { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+                  { name: "Feijão", quantity: "2 colheres", calories: 140 }
+                ],
+                alternatives: [
+                  { name: "Peixe Assado", quantity: "150g", calories: 320 },
+                  { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
+                  { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
+                ]
+              },
+              dinner: {
+                main: [
+                  { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+                  { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+                  { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+                ],
+                alternatives: [
+                  { name: "Peito de Peru", quantity: "120g", calories: 275 },
+                  { name: "Quinoa", quantity: "3 colheres", calories: 125 },
+                  { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
+                ]
+              },
+              morningSnack: null,
+              afternoonSnack: null,
               totalCalories: 1980,
               notes: "Sua dieta personalizada foi liberada! Acompanhe as refeições sugeridas e lembre-se de beber bastante água."
             });
@@ -1023,171 +1148,6 @@ function DietaPersonalizada({
       toast.error('Erro ao verificar pagamento. Tente novamente.');
     } finally {
       setIsCheckingPayment(false);
-    }
-  };
-
-  // Function to parse AI diet response into structured data
-  const parseDietResponse = (aiResponse: string) => {
-    try {
-      console.log('Parsing AI response:', aiResponse);
-      
-      // First, try to parse as JSON (new format with JSON mode)
-      try {
-        // Clean the response - remove any markdown code blocks or extra text
-        let cleanResponse = aiResponse.trim();
-        
-        // Remove markdown code blocks if present
-        if (cleanResponse.startsWith('```json')) {
-          cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (cleanResponse.startsWith('```')) {
-          cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
-        
-        // Try direct JSON parse first (for JSON mode responses)
-        let jsonData;
-        try {
-          jsonData = JSON.parse(cleanResponse);
-        } catch {
-          // If direct parse fails, try to find JSON in the response
-          const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            jsonData = JSON.parse(jsonMatch[0]);
-          } else {
-            throw new Error('No JSON found in response');
-          }
-        }
-        
-        // Validate that we have the expected structure with required fields
-        if (jsonData && typeof jsonData === 'object' &&
-            jsonData.breakfast && Array.isArray(jsonData.breakfast) && 
-            jsonData.lunch && Array.isArray(jsonData.lunch) && 
-            jsonData.dinner && Array.isArray(jsonData.dinner)) {
-          
-          console.log('Successfully parsed JSON diet data:', jsonData);
-          
-          // Ensure all meal arrays have exactly 3 items or fill with placeholders
-          const ensureThreeItems = (mealArray: any[], mealName: string) => {
-            if (!Array.isArray(mealArray)) return [];
-            const items = mealArray.slice(0, 3); // Take first 3 items
-            while (items.length < 3) {
-              items.push({
-                name: `Opção ${items.length + 1} de ${mealName}`,
-                quantity: "Conforme orientação",
-                calories: 0
-              });
-            }
-            return items;
-          };
-          
-          return {
-            breakfast: ensureThreeItems(jsonData.breakfast, 'café da manhã'),
-            morningSnack: ensureThreeItems(jsonData.morningSnack || [], 'lanche da manhã'),
-            lunch: ensureThreeItems(jsonData.lunch, 'almoço'),
-            afternoonSnack: ensureThreeItems(jsonData.afternoonSnack || [], 'lanche da tarde'),
-            dinner: ensureThreeItems(jsonData.dinner, 'jantar'),
-            totalCalories: jsonData.totalCalories || 0,
-            notes: jsonData.notes || 'Sua dieta personalizada foi criada com base nas suas preferências alimentares.',
-            fullResponse: aiResponse
-          };
-        }
-      } catch (jsonError) {
-        console.log('JSON parsing failed, falling back to text parsing:', jsonError);
-      }
-
-      // Fallback: try to extract structured meal data from text format
-      const meals: {
-        breakfast: Array<{ name: string; quantity: string; calories: number }>;
-        morningSnack: Array<{ name: string; quantity: string; calories: number }>;
-        lunch: Array<{ name: string; quantity: string; calories: number }>;
-        afternoonSnack: Array<{ name: string; quantity: string; calories: number }>;
-        dinner: Array<{ name: string; quantity: string; calories: number }>;
-      } = {
-        breakfast: [],
-        morningSnack: [],
-        lunch: [],
-        afternoonSnack: [],
-        dinner: []
-      };
-
-      // Simple parsing for common meal patterns
-      const parseSection = (sectionName: string, aliasNames: string[] = []) => {
-        const allNames = [sectionName, ...aliasNames];
-        for (const name of allNames) {
-          const regex = new RegExp(`${name}:?\\s*\\n([\\s\\S]*?)(?=\\n\\n|\\n[A-Z]|$)`, 'i');
-          const match = aiResponse.match(regex);
-          if (match) {
-            const items = match[1].split('\n')
-              .filter(line => line.trim())
-              .map(line => {
-                const item = line.trim().replace(/^[-•*]\s*/, '');
-                return {
-                  name: item,
-                  quantity: "Conforme orientação",
-                  calories: 0
-                };
-              })
-              .slice(0, 3); // Limit to 3 items per meal
-            return items;
-          }
-        }
-        return [];
-      };
-
-      meals.breakfast = parseSection("Café da Manhã", ["Café da manhã", "Breakfast"]);
-      meals.morningSnack = parseSection("Lanche da Manhã", ["Lanche da manhã", "Morning Snack"]);
-      meals.lunch = parseSection("Almoço", ["Lunch"]);
-      meals.afternoonSnack = parseSection("Lanche da Tarde", ["Lanche da tarde", "Afternoon Snack"]);
-      meals.dinner = parseSection("Jantar", ["Dinner"]);
-
-      // Calculate total calories from the response if available
-      const caloriesMatch = aiResponse.match(/(\d+)\s*(?:kcal|cal|calorias)/i);
-      const totalCalories = caloriesMatch ? parseInt(caloriesMatch[1]) : 0;
-
-      // If we found some structured data, return it
-      const hasStructuredData = Object.values(meals).some(meal => meal.length > 0);
-
-      if (hasStructuredData) {
-        return {
-          breakfast: meals.breakfast,
-          morningSnack: meals.morningSnack,
-          lunch: meals.lunch,
-          afternoonSnack: meals.afternoonSnack,
-          dinner: meals.dinner,
-          totalCalories: totalCalories,
-          notes: aiResponse,
-          fullResponse: aiResponse
-        };
-      }
-
-      // Final fallback: show the full AI response as notes with minimal structure
-      console.log('No structured data found, using full response as notes');
-      return {
-        breakfast: [
-          { name: "Plano nutricional personalizado", quantity: "Veja detalhes abaixo", calories: 0 }
-        ],
-        morningSnack: [],
-        lunch: [],
-        afternoonSnack: [],
-        dinner: [],
-        totalCalories: totalCalories,
-        notes: aiResponse,
-        fullResponse: aiResponse
-      };
-    } catch (error) {
-      console.error('Error parsing diet response:', error);
-      // Ultimate fallback
-      return {
-        breakfast: [
-          { name: "Erro ao processar dieta", quantity: "Veja detalhes abaixo", calories: 0 }
-        ],
-        morningSnack: [],
-        lunch: [],
-        afternoonSnack: [],
-        dinner: [],
-        totalCalories: 0,
-        notes: aiResponse || "Erro ao carregar dados da dieta.",
-        fullResponse: aiResponse
-      };
     }
   };
 
@@ -1220,55 +1180,90 @@ function DietaPersonalizada({
     </div>
   );
 
-  const MealPreviewCard = ({ title, items, showMore = false, isBlurred = false }: {
+  const MealPreviewCard = ({ title, mealData, showMore = false, isBlurred = false }: {
     title: string;
-    items: { name: string; quantity: string; calories: number }[];
+    mealData: { main: { name: string; quantity: string; calories: number }[]; alternatives: { name: string; quantity: string; calories: number }[] } | null;
     showMore?: boolean;
     isBlurred?: boolean;
-  }) => (
-    <div className={`bg-gray-50 p-4 rounded-lg relative ${isBlurred ? 'overflow-hidden' : ''}`}>
-      <div className={isBlurred ? 'filter blur-sm' : ''}>
-        <h4 className="font-semibold text-green-700 mb-2">{title}</h4>
-        <div className="space-y-1">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="font-medium text-gray-800 text-sm">{items[0]?.name}</p>
-              <p className="text-xs text-gray-600">{items[0]?.quantity}</p>
+  }) => {
+    if (!mealData) return null;
+    
+    const mainItems = mealData.main || [];
+    const totalAlternatives = (mealData.alternatives || []).length;
+    
+    return (
+      <div className={`bg-gray-50 p-4 rounded-lg relative ${isBlurred ? 'overflow-hidden' : ''}`}>
+        <div className={isBlurred ? 'filter blur-sm' : ''}>
+          <h4 className="font-semibold text-green-700 mb-2">{title}</h4>
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-medium text-gray-800 text-sm">{mainItems[0]?.name}</p>
+                <p className="text-xs text-gray-600">{mainItems[0]?.quantity}</p>
+              </div>
+              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                {mainItems[0]?.calories} cal
+              </span>
             </div>
-            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-              {items[0]?.calories} cal
-            </span>
+            {showMore && (
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 italic">+{mainItems.length - 1} itens principais</p>
+                {totalAlternatives > 0 && (
+                  <p className="text-xs text-blue-500 italic">+{totalAlternatives} alternativas</p>
+                )}
+              </div>
+            )}
           </div>
-          {showMore && (
-            <p className="text-xs text-gray-500 italic">+{items.length - 1} opções adicionais</p>
-          )}
         </div>
+        {isBlurred && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-lg">
+            <Lock className="w-6 h-6 text-gray-400" />
+          </div>
+        )}
       </div>
-      {isBlurred && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/20 backdrop-blur-sm rounded-lg">
-          <Lock className="w-6 h-6 text-gray-400" />
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   // Get the diet data to display (either real data or fallback)
   const displayDietData = dietData || {
-    breakfast: [
-      { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
-      { name: "Café com Leite", quantity: "200ml", calories: 80 },
-      { name: "Banana", quantity: "1 unidade", calories: 90 }
-    ],
-    lunch: [
-      { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-      { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-      { name: "Feijão", quantity: "2 colheres", calories: 140 }
-    ],
-    dinner: [
-      { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-      { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-      { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-    ],
+    breakfast: {
+      main: [
+        { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
+        { name: "Café com Leite", quantity: "200ml", calories: 80 },
+        { name: "Banana", quantity: "1 unidade", calories: 90 }
+      ],
+      alternatives: [
+        { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
+        { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
+        { name: "Maçã", quantity: "1 unidade", calories: 95 }
+      ]
+    },
+    lunch: {
+      main: [
+        { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+        { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+        { name: "Feijão", quantity: "2 colheres", calories: 140 }
+      ],
+      alternatives: [
+        { name: "Peixe Assado", quantity: "150g", calories: 320 },
+        { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
+        { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
+      ]
+    },
+    dinner: {
+      main: [
+        { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+        { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+        { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+      ],
+      alternatives: [
+        { name: "Peito de Peru", quantity: "120g", calories: 275 },
+        { name: "Quinoa", quantity: "3 colheres", calories: 125 },
+        { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
+      ]
+    },
+    morningSnack: null,
+    afternoonSnack: null,
     totalCalories: 1980,
     notes: "Sua dieta personalizada estará disponível após o pagamento. Esta é apenas uma prévia dos tipos de alimentos que incluiremos baseados nas suas preferências."
   };
@@ -1422,19 +1417,19 @@ function DietaPersonalizada({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <MealPreviewCard
                   title="Café da Manhã"
-                  items={displayDietData.breakfast}
+                  mealData={displayDietData.breakfast}
                   showMore={true}
                   isBlurred={!isPaymentConfirmed}
                 />
                 <MealPreviewCard
                   title="Almoço"
-                  items={displayDietData.lunch}
+                  mealData={displayDietData.lunch}
                   showMore={true}
                   isBlurred={!isPaymentConfirmed}
                 />
                 <MealPreviewCard
                   title="Jantar"
-                  items={displayDietData.dinner}
+                  mealData={displayDietData.dinner}
                   showMore={true}
                   isBlurred={!isPaymentConfirmed}
                 />
@@ -1498,115 +1493,331 @@ function DietaPersonalizada({
               ) : (
                 <div className="space-y-4">
                   {/* Full Diet Display */}
-                  <div ref={targetRef} className="bg-white p-6 rounded-lg border border-gray-200">
+                  <div className="bg-white p-6 rounded-lg border border-gray-200">
+                    {/* Hidden PDF component for export */}
+                    <div style={{ display: 'none' }}>
+                      <div ref={targetRef}>
+                        <DietPDFComponent dietData={displayDietData} />
+                      </div>
+                    </div>
                     <div className="text-center mb-6">
                       <h2 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Personalizada</h2>
                       <p className="text-gray-600">Total: {displayDietData.totalCalories} calorias por dia</p>
                     </div>
 
+                    {/* Regenerate Diet Button - Only show if paid and not already regenerated */}
+                    {isPaymentConfirmed && !hasRegenerated && !showRegenerateInput && (
+                      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg text-left font-semibold text-yellow-800">Não gostou de algo?</h3>
+                            <p className="text-sm text-yellow-700">Você pode gerar uma nova dieta uma única vez</p>
+                          </div>
+                          <Button
+                            onClick={() => setShowRegenerateInput(true)}
+                            className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg"
+                          >
+                            Gerar outra dieta
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Regenerate Feedback Input */}
+                    {showRegenerateInput && (
+                      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h3 className="text-lg font-semibold text-blue-800 mb-3">O que você não gostou?</h3>
+                        <textarea
+                          value={regenerateFeedback}
+                          onChange={(e) => setRegenerateFeedback(e.target.value)}
+                          placeholder="Descreva o que você gostaria de mudar na sua dieta (ex: 'Não gosto de brócolis, prefiro couve-flor')"
+                          className="w-full p-3 border border-blue-300 rounded-lg resize-none h-24"
+                          maxLength={500}
+                        />
+                        <div className="flex justify-between items-center mt-3">
+                          <span className="text-sm text-blue-600">{regenerateFeedback.length}/500 caracteres</span>
+                          <div className="space-x-2">
+                            <Button
+                              onClick={() => {
+                                setShowRegenerateInput(false);
+                                setRegenerateFeedback('');
+                              }}
+                              variant="outline"
+                              className="text-gray-600 border-gray-300"
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              onClick={handleRegenerateDiet}
+                              disabled={isRegenerating || regenerateFeedback.trim().length < 10}
+                              className="bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                            >
+                              {isRegenerating ? (
+                                <div className="flex items-center">
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Gerando...
+                                </div>
+                              ) : (
+                                'Gerar nova dieta'
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {hasRegenerated && (
+                      <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center">
+                          <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+                          <span className="text-green-800 font-medium">Nova dieta gerada com base no seu feedback!</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Complete Meal Sections */}
                     <div className="space-y-6">
                       {displayDietData.breakfast && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-green-700 mb-3">Café da Manhã</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {displayDietData.breakfast.map((item: any, index: number) => (
-                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium text-gray-800">{item.name}</p>
-                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                        <div className="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-xl border-2 border-green-200 shadow-sm">
+                          <h3 className="text-xl font-bold text-green-800 mb-4 flex items-center">
+                            <span className="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">1</span>
+                            Café da Manhã
+                          </h3>
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {displayDietData.breakfast.main?.map((item: any, index: number) => (
+                                  <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <p className="font-medium text-gray-800">{item.name}</p>
+                                        <p className="text-sm text-gray-600">{item.quantity}</p>
+                                      </div>
+                                      <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                        {item.calories} cal
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {item.calories} cal
-                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            {displayDietData.breakfast.alternatives && displayDietData.breakfast.alternatives.length > 0 && (
+                              <div>
+                                <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {displayDietData.breakfast.alternatives.map((item: any, index: number) => (
+                                    <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <p className="font-medium text-gray-800">{item.name}</p>
+                                          <p className="text-sm text-gray-600">{item.quantity}</p>
+                                        </div>
+                                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                          {item.calories} cal
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
 
-                      {displayDietData.morningSnack && displayDietData.morningSnack.length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-green-700 mb-3">Lanche da Manhã</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {displayDietData.morningSnack.map((item: any, index: number) => (
-                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium text-gray-800">{item.name}</p>
-                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                      {displayDietData.morningSnack && (
+                        <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-6 rounded-xl border-2 border-orange-200 shadow-sm">
+                          <h3 className="text-xl font-bold text-orange-800 mb-4 flex items-center">
+                            <span className="bg-orange-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">2</span>
+                            Lanche da Manhã
+                          </h3>
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {displayDietData.morningSnack.main?.map((item: any, index: number) => (
+                                  <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <p className="font-medium text-gray-800">{item.name}</p>
+                                        <p className="text-sm text-gray-600">{item.quantity}</p>
+                                      </div>
+                                      <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                        {item.calories} cal
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {item.calories} cal
-                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            {displayDietData.morningSnack.alternatives && displayDietData.morningSnack.alternatives.length > 0 && (
+                              <div>
+                                <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {displayDietData.morningSnack.alternatives.map((item: any, index: number) => (
+                                    <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <p className="font-medium text-gray-800">{item.name}</p>
+                                          <p className="text-sm text-gray-600">{item.quantity}</p>
+                                        </div>
+                                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                          {item.calories} cal
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
 
                       {displayDietData.lunch && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-green-700 mb-3">Almoço</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {displayDietData.lunch.map((item: any, index: number) => (
-                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium text-gray-800">{item.name}</p>
-                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl border-2 border-blue-200 shadow-sm">
+                          <h3 className="text-xl font-bold text-blue-800 mb-4 flex items-center">
+                            <span className="bg-blue-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">{displayDietData.morningSnack ? '3' : '2'}</span>
+                            Almoço
+                          </h3>
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {displayDietData.lunch.main?.map((item: any, index: number) => (
+                                  <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <p className="font-medium text-gray-800">{item.name}</p>
+                                        <p className="text-sm text-gray-600">{item.quantity}</p>
+                                      </div>
+                                      <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                        {item.calories} cal
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {item.calories} cal
-                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            {displayDietData.lunch.alternatives && displayDietData.lunch.alternatives.length > 0 && (
+                              <div>
+                                <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {displayDietData.lunch.alternatives.map((item: any, index: number) => (
+                                    <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <p className="font-medium text-gray-800">{item.name}</p>
+                                          <p className="text-sm text-gray-600">{item.quantity}</p>
+                                        </div>
+                                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                          {item.calories} cal
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
 
-                      {displayDietData.afternoonSnack && displayDietData.afternoonSnack.length > 0 && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-green-700 mb-3">Lanche da Tarde</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {displayDietData.afternoonSnack.map((item: any, index: number) => (
-                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium text-gray-800">{item.name}</p>
-                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                      {displayDietData.afternoonSnack && (
+                        <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-xl border-2 border-purple-200 shadow-sm">
+                          <h3 className="text-xl font-bold text-purple-800 mb-4 flex items-center">
+                            <span className="bg-purple-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">{(displayDietData.morningSnack ? 4 : 3)}</span>
+                            Lanche da Tarde
+                          </h3>
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {displayDietData.afternoonSnack.main?.map((item: any, index: number) => (
+                                  <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <p className="font-medium text-gray-800">{item.name}</p>
+                                        <p className="text-sm text-gray-600">{item.quantity}</p>
+                                      </div>
+                                      <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                        {item.calories} cal
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {item.calories} cal
-                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            {displayDietData.afternoonSnack.alternatives && displayDietData.afternoonSnack.alternatives.length > 0 && (
+                              <div>
+                                <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {displayDietData.afternoonSnack.alternatives.map((item: any, index: number) => (
+                                    <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <p className="font-medium text-gray-800">{item.name}</p>
+                                          <p className="text-sm text-gray-600">{item.quantity}</p>
+                                        </div>
+                                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                          {item.calories} cal
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
 
                       {displayDietData.dinner && (
-                        <div>
-                          <h3 className="text-lg font-semibold text-green-700 mb-3">Jantar</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {displayDietData.dinner.map((item: any, index: number) => (
-                              <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium text-gray-800">{item.name}</p>
-                                    <p className="text-sm text-gray-600">{item.quantity}</p>
+                        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 p-6 rounded-xl border-2 border-indigo-200 shadow-sm">
+                          <h3 className="text-xl font-bold text-indigo-800 mb-4 flex items-center">
+                            <span className="bg-indigo-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">{(displayDietData.morningSnack && displayDietData.afternoonSnack) ? '5' : (displayDietData.morningSnack || displayDietData.afternoonSnack) ? '4' : '3'}</span>
+                            Jantar
+                          </h3>
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {displayDietData.dinner.main?.map((item: any, index: number) => (
+                                  <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
+                                    <div className="flex justify-between items-center">
+                                      <div>
+                                        <p className="font-medium text-gray-800">{item.name}</p>
+                                        <p className="text-sm text-gray-600">{item.quantity}</p>
+                                      </div>
+                                      <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                                        {item.calories} cal
+                                      </span>
+                                    </div>
                                   </div>
-                                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {item.calories} cal
-                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            {displayDietData.dinner.alternatives && displayDietData.dinner.alternatives.length > 0 && (
+                              <div>
+                                <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {displayDietData.dinner.alternatives.map((item: any, index: number) => (
+                                    <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                      <div className="flex justify-between items-center">
+                                        <div>
+                                          <p className="font-medium text-gray-800">{item.name}</p>
+                                          <p className="text-sm text-gray-600">{item.quantity}</p>
+                                        </div>
+                                        <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                          {item.calories} cal
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
                       )}
@@ -1752,7 +1963,141 @@ function App() {
   const [dietStep, setDietStep] = useState<'form' | 'loading' | 'preview'>('form');
   const [activeMealSection, setActiveMealSection] = useState<string | null>(null);
   const [submittedFormData, setSubmittedFormData] = useState<FormData | null>(null);
+  const [hasCheckedPaidDiet, setHasCheckedPaidDiet] = useState(false);
+  const [showRegenerateInput, setShowRegenerateInput] = useState(false);
+  const [regenerateFeedback, setRegenerateFeedback] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [hasRegenerated, setHasRegenerated] = useState(false);
+  const [dietData, setDietData] = useState<any>(null);
+  const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const { user } = useAuth();
+
+  // Function to parse AI diet response into structured data
+  const parseDietResponse = (aiResponse: string) => {
+    try {
+      console.log('Parsing AI response:', aiResponse);
+      
+      // First, try to parse as JSON (new format with JSON mode)
+      try {
+        // Clean the response - remove any markdown code blocks or extra text
+        let cleanResponse = aiResponse.trim();
+        
+        // Remove markdown code blocks if present
+        if (cleanResponse.startsWith('```json')) {
+          cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanResponse.startsWith('```')) {
+          cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        // Try direct JSON parse first (for JSON mode responses)
+        let jsonData;
+        try {
+          jsonData = JSON.parse(cleanResponse);
+        } catch {
+          // If direct parse fails, try to find JSON in the response
+          const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonData = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('No JSON found in response');
+          }
+        }
+        
+        // Validate that we have the expected structure with required fields
+        if (jsonData && typeof jsonData === 'object' &&
+            jsonData.breakfast?.main && Array.isArray(jsonData.breakfast.main) && 
+            jsonData.lunch?.main && Array.isArray(jsonData.lunch.main) && 
+            jsonData.dinner?.main && Array.isArray(jsonData.dinner.main)) {
+          
+          console.log('Successfully parsed JSON diet data with alternatives:', jsonData);
+          
+          // Ensure all meal arrays have exactly 3 items or fill with placeholders
+          const ensureThreeItems = (mealArray: any[], mealName: string) => {
+            if (!Array.isArray(mealArray)) return [];
+            const items = mealArray.slice(0, 3); // Take first 3 items
+            while (items.length < 3) {
+              items.push({
+                name: `Opção ${items.length + 1} de ${mealName}`,
+                quantity: "Conforme orientação",
+                calories: 0
+              });
+            }
+            return items;
+          };
+
+          // Process meals with main and alternative options
+          const processMeal = (mealData: any, mealName: string) => {
+            if (!mealData || mealData === null) return null;
+            return {
+              main: ensureThreeItems(mealData.main || [], mealName),
+              alternatives: ensureThreeItems(mealData.alternatives || [], `alternativas de ${mealName}`)
+            };
+          };
+          
+          return {
+            breakfast: processMeal(jsonData.breakfast, 'café da manhã'),
+            morningSnack: processMeal(jsonData.morningSnack, 'lanche da manhã'),
+            lunch: processMeal(jsonData.lunch, 'almoço'),
+            afternoonSnack: processMeal(jsonData.afternoonSnack, 'lanche da tarde'),
+            dinner: processMeal(jsonData.dinner, 'jantar'),
+            totalCalories: jsonData.totalCalories || 0,
+            notes: jsonData.notes || 'Sua dieta personalizada foi criada com base nas suas preferências alimentares.',
+            fullResponse: aiResponse
+          };
+        }
+      } catch (jsonError) {
+        console.log('JSON parsing failed, using fallback:', jsonError);
+      }
+
+      // Final fallback
+      console.log('Using fallback diet structure');
+      return {
+        breakfast: {
+          main: [
+            { name: "Erro ao processar dieta", quantity: "Veja detalhes abaixo", calories: 0 }
+          ],
+          alternatives: []
+        },
+        morningSnack: null,
+        lunch: {
+          main: [],
+          alternatives: []
+        },
+        afternoonSnack: null,
+        dinner: {
+          main: [],
+          alternatives: []
+        },
+        totalCalories: 0,
+        notes: aiResponse || "Erro ao carregar dados da dieta.",
+        fullResponse: aiResponse
+      };
+    } catch (error) {
+      console.error('Error parsing diet response:', error);
+      // Ultimate fallback
+      return {
+        breakfast: {
+          main: [
+            { name: "Erro ao processar dieta", quantity: "Veja detalhes abaixo", calories: 0 }
+          ],
+          alternatives: []
+        },
+        morningSnack: null,
+        lunch: {
+          main: [],
+          alternatives: []
+        },
+        afternoonSnack: null,
+        dinner: {
+          main: [],
+          alternatives: []
+        },
+        totalCalories: 0,
+        notes: aiResponse || "Erro ao carregar dados da dieta.",
+        fullResponse: aiResponse
+      };
+    }
+  };
 
   // Restore form state from localStorage on mount
   useEffect(() => {
@@ -1784,6 +2129,44 @@ function App() {
   useEffect(() => {
     localStorage.setItem('dietabox-diet-step', dietStep);
   }, [dietStep]);
+
+  // Check for existing paid diet when user logs in
+  useEffect(() => {
+    const checkUserPaidDiet = async () => {
+      if (user && !hasCheckedPaidDiet) {
+        setHasCheckedPaidDiet(true);
+        try {
+          const token = localStorage.getItem('token');
+          if (!token) return;
+
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100'}/api/user-paid-diet`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.hasPaidDiet) {
+              console.log('Found existing paid diet:', data.data);
+              // Parse and set the existing diet data
+              const parsedDiet = parseDietResponse(data.data.aiResponse);
+              setDietData({...parsedDiet, dietId: data.data.dietId});
+              setDietStep('preview');
+              setIsPaymentConfirmed(true);
+              toast.success('Sua dieta já paga foi carregada!');
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('Error checking for paid diet:', error);
+        }
+      }
+    };
+
+    checkUserPaidDiet();
+  }, [user, hasCheckedPaidDiet, parseDietResponse]);
 
   const {
     control,
@@ -1882,12 +2265,55 @@ function App() {
     setDietStep('preview');
   };
 
-  const handlePaymentSuccess = () => {
-    // This function is called when payment is confirmed
-    // We don't reset anything - just show success message
-    toast.success('Pagamento realizado com sucesso! Sua dieta completa foi liberada.');
-    // Keep the user on the preview step to see their diet
-    // Don't clear form data or reset step
+  const handleRegenerateDiet = async () => {
+    if (!regenerateFeedback.trim() || !dietData?.dietId) {
+      toast.error('Por favor, descreva o que você não gostou na dieta.');
+      return;
+    }
+
+    setIsRegenerating(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Erro de autenticação. Faça login novamente.');
+        return;
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3100'}/api/regenerate-diet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          dietId: dietData.dietId,
+          feedback: regenerateFeedback
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          // Parse and set the new diet data
+          const parsedDiet = parseDietResponse(data.data.aiResponse);
+          setDietData({...parsedDiet, dietId: data.data.dietId});
+          setHasRegenerated(true);
+          setShowRegenerateInput(false);
+          setRegenerateFeedback('');
+          toast.success('Nova dieta gerada com sucesso!');
+        } else {
+          toast.error(data.error || 'Erro ao gerar nova dieta.');
+        }
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.error || 'Erro ao gerar nova dieta.');
+      }
+    } catch (error) {
+      console.error('Error regenerating diet:', error);
+      toast.error('Erro ao gerar nova dieta. Tente novamente.');
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
   return (
@@ -1984,8 +2410,19 @@ function App() {
           isSubmitting={isSubmitting}
           currentStep={dietStep}
           onLoadingComplete={handleLoadingComplete}
-          onPaymentSuccess={handlePaymentSuccess}
           formData={submittedFormData || undefined}
+          dietData={dietData}
+          setDietData={setDietData}
+          isPaymentConfirmed={isPaymentConfirmed}
+          setIsPaymentConfirmed={setIsPaymentConfirmed}
+          showRegenerateInput={showRegenerateInput}
+          setShowRegenerateInput={setShowRegenerateInput}
+          regenerateFeedback={regenerateFeedback}
+          setRegenerateFeedback={setRegenerateFeedback}
+          isRegenerating={isRegenerating}
+          hasRegenerated={hasRegenerated}
+          handleRegenerateDiet={handleRegenerateDiet}
+          parseDietResponse={parseDietResponse}
         />
       </div>
     </main>
