@@ -927,10 +927,9 @@ function DietaPersonalizada({
 
       const data = await response.json();
       
-      // Verify that the response contains a status field and it equals "paid"
-      // Any other status should be considered as not paid
-      if (data && data.status && data.status !== "paid") {
-        toast.error("Pagamento ainda não confirmado. Por favor, tente novamente em alguns instantes.");
+      // Check if payment is confirmed using the 'paid' field from backend
+      if (data && !data.paid) {
+        // Payment not confirmed yet - don't show error toast here, let handlePaymentConfirm handle it
         return { ...data, success: false };
       }
       
@@ -1067,9 +1066,8 @@ function DietaPersonalizada({
       
       console.log('Payment status response:', paymentStatus);
 
-      // Only proceed if status is specifically "paid"
-      // Check if the order status is specifically "paid" (as per API docs)
-      if (paymentStatus.success && paymentStatus.status === "paid") {
+      // Check if payment is confirmed using the 'paid' field from backend
+      if (paymentStatus.success && paymentStatus.paid) {
         // Payment confirmed successfully
         setIsPaymentConfirmed(true);
         setShowPaymentModal(false);
@@ -1201,6 +1199,9 @@ function DietaPersonalizada({
         // Show appropriate toast message based on status
         switch (status) {
           case 'pending':
+            toast.warning('Aguardando confirmação do pagamento PIX. Tente novamente em alguns minutos.');
+            break;
+          case 'waiting_payment':
             toast.warning('Aguardando confirmação do pagamento PIX. Tente novamente em alguns minutos.');
             break;
           case 'failed':
@@ -1579,20 +1580,17 @@ function DietaPersonalizada({
               ) : (
                 <div className="space-y-4">
                   {/* Full Diet Display */}
-                  <div className="bg-white p-6 rounded-lg border border-gray-200">
+                  <div className="bg-white px-6 py-4 rounded-lg">
                     {/* Hidden PDF component for export */}
                     <div style={{ display: 'none' }}>
                       <div ref={targetRef}>
                         <DietPDFComponent dietData={displayDietData} />
                       </div>
                     </div>
-                    <div className="text-center mb-6">
-                      <h2 className="text-2xl font-bold text-gray-800 mb-2">Sua Dieta Personalizada</h2>
-                      <p className="text-gray-600">Total: {displayDietData.totalCalories} calorias por dia</p>
-                    </div>
+                   
 
                     {/* Regenerate Diet Button - Only show if paid and not already regenerated */}
-                    {isPaymentConfirmed && !hasRegenerated && !showRegenerateInput && (
+                    {/* {isPaymentConfirmed && !hasRegenerated && !showRegenerateInput && (
                       <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1607,10 +1605,10 @@ function DietaPersonalizada({
                           </Button>
                         </div>
                       </div>
-                    )}
+                    )} */}
 
                     {/* Create New Diet Button - Show for users who already have a paid diet */}
-                    {shouldShowDietDirectly() && (
+                    {/* {shouldShowDietDirectly() && (
                       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-center justify-between">
                           <div>
@@ -1638,7 +1636,7 @@ function DietaPersonalizada({
                           </Button>
                         </div>
                       </div>
-                    )}
+                    )} */}
 
                     {/* Regenerate Feedback Input */}
                     {showRegenerateInput && (
