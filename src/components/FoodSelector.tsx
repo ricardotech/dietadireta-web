@@ -1,6 +1,5 @@
 import { AlertCircle, Check, ChartLine } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
 
 interface FoodSelectorProps {
   title: string;
@@ -11,9 +10,6 @@ interface FoodSelectorProps {
   onChange: (items: string[]) => void;
   error?: string;
   maxItems?: number;
-  isMinimized?: boolean;
-  onMinimize?: () => void;
-  onExpand?: () => void;
   isRequired?: boolean;
 }
 
@@ -26,9 +22,6 @@ export function FoodSelector({
   onChange,
   error,
   maxItems = 5,
-  isMinimized = false,
-  onMinimize,
-  onExpand,
   isRequired = false,
 }: FoodSelectorProps) {
   const handleItemToggle = (value: string) => {
@@ -39,9 +32,6 @@ export function FoodSelector({
     }
   };
 
-  const handleExpand = () => {
-    if (onExpand) onExpand();
-  };
 
   const getProgressPercentage = () => {
     const count = selectedItems.length;
@@ -136,73 +126,38 @@ export function FoodSelector({
               </div>
             </div>
 
-            {/* Show minimized view if section is minimized and has selections */}
-            {isMinimized && selectedItems.length > 0 ? (
-              <div className="space-y-3">
-                {/* Show all selected items as individual green cards */}
-                {selectedItems.map((itemValue, index) => {
-                  const food = foods.find(f => f.value === itemValue);
-                  const isFirst = index === 0;
-                  return (
-                    <div key={index} className="border-2 border-green-500 bg-green-50 rounded-lg p-4 flex items-center justify-between">
-                      <div className="flex items-center">
-                        <span className="text-2xl mr-3">{food?.emoji}</span>
-                        <div>
-                          <p className="font-medium text-green-700">{food?.label}</p>
-                          <p className="text-sm text-green-600">
-                            {isFirst ? "Primeira opção selecionada" : `${index === 1 ? "Segunda" : index === 2 ? "Terceira" : index === 3 ? "Quarta" : "Quinta"} opção selecionada`}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="bg-green-500 rounded-full p-2">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Show full selection grid */}
+            <div className="grid grid-cols-3 gap-3">
+              {foods.map((food) => {
+                const isSelected = selectedItems.includes(food.value);
+                const isDisabled = !isSelected && selectedItems.length >= maxItems;
 
-                {/* Button to expand selections */}
-                <button
-                  onClick={handleExpand}
-                  className="w-full bg-white border border-gray-300 rounded-lg p-3 text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Modificar seleções ({selectedItems.length}/{maxItems})
-                </button>
-              </div>
-            ) : (
-              /* Show full selection grid */
-              <div className="grid grid-cols-3 gap-3">
-                {foods.map((food) => {
-                  const isSelected = selectedItems.includes(food.value);
-                  const isDisabled = !isSelected && selectedItems.length >= maxItems;
-
-                  return (
-                    <button
-                      key={food.value}
-                      onClick={() => handleItemToggle(food.value)}
-                      disabled={isDisabled}
-                      className={`
-                        text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
-                        ${isSelected
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : isDisabled
-                            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
-                        }
-                      `}
-                    >
-                      <p className="text-xl mb-1">{food.emoji}</p>
-                      <span className="font-medium text-center leading-tight">{food.label}</span>
-                      {isSelected && (
-                        <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                return (
+                  <button
+                    key={food.value}
+                    onClick={() => handleItemToggle(food.value)}
+                    disabled={isDisabled}
+                    className={`
+                      text-sm py-3 px-2 border rounded-lg flex flex-col items-center justify-center transition-all duration-200 min-h-[80px] relative
+                      ${isSelected
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : isDisabled
+                          ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-green-300 hover:bg-green-50'
+                      }
+                    `}
+                  >
+                    <p className="text-xl mb-1">{food.emoji}</p>
+                    <span className="font-medium text-center leading-tight">{food.label}</span>
+                    {isSelected && (
+                      <div className="absolute top-1 right-1 bg-green-500 rounded-full p-1">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

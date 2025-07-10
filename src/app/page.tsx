@@ -2076,7 +2076,6 @@ function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mealValidationErrors, setMealValidationErrors] = useState<Record<string, string>>({});
   const [dietStep, setDietStep] = useState<'form' | 'loading' | 'preview'>('form');
-  const [activeMealSection, setActiveMealSection] = useState<string | null>(null);
   const [submittedFormData, setSubmittedFormData] = useState<FormData | null>(null);
   const [hasCheckedPaidDiet, setHasCheckedPaidDiet] = useState(false);
   const [showRegenerateInput, setShowRegenerateInput] = useState(false);
@@ -2312,17 +2311,6 @@ function App() {
     }
   });
 
-  const handleMealSectionFocus = (sectionName: string) => {
-    setActiveMealSection(sectionName);
-  };
-
-  const handleMealSectionExpand = (sectionName: string) => {
-    setActiveMealSection(sectionName);
-  };
-
-  const shouldMinimize = (sectionName: string) => {
-    return activeMealSection !== null && activeMealSection !== sectionName;
-  };
 
   const onSubmit = async (data: FormData) => {
     // Clear previous validation errors
@@ -2464,11 +2452,8 @@ function App() {
               selectedItems={watch("breakfastItems") || []}
               onChange={(items) => {
                 setValue("breakfastItems", items);
-                if (items.length > 0) handleMealSectionFocus("breakfast");
               }}
               error={mealValidationErrors.breakfast}
-              isMinimized={shouldMinimize("breakfast")}
-              onExpand={() => handleMealSectionExpand("breakfast")}
               isRequired={true}
             />
 
@@ -2477,17 +2462,13 @@ function App() {
               isIncluded={watch("includeLancheManha") || false}
               onToggleInclude={(included) => {
                 setValue("includeLancheManha", included);
-                if (included) handleMealSectionFocus("morningSnack");
               }}
               foods={foodData.morningSnack}
               selectedItems={watch("morningSnackItems") || []}
               onChange={(items) => {
                 setValue("morningSnackItems", items);
-                if (items.length > 0) handleMealSectionFocus("morningSnack");
               }}
               error={mealValidationErrors.morningSnack}
-              isMinimized={shouldMinimize("morningSnack")}
-              onExpand={() => handleMealSectionExpand("morningSnack")}
             />
 
             <FoodSelector
@@ -2497,11 +2478,8 @@ function App() {
               selectedItems={watch("lunchItems") || []}
               onChange={(items) => {
                 setValue("lunchItems", items);
-                if (items.length > 0) handleMealSectionFocus("lunch");
               }}
               error={mealValidationErrors.lunch}
-              isMinimized={shouldMinimize("lunch")}
-              onExpand={() => handleMealSectionExpand("lunch")}
               isRequired={true}
             />
 
@@ -2510,17 +2488,13 @@ function App() {
               isIncluded={watch("includeLancheTarde") || false}
               onToggleInclude={(included) => {
                 setValue("includeLancheTarde", included);
-                if (included) handleMealSectionFocus("afternoonSnack");
               }}
               foods={foodData.afternoonSnack}
               selectedItems={watch("afternoonSnackItems") || []}
               onChange={(items) => {
                 setValue("afternoonSnackItems", items);
-                if (items.length > 0) handleMealSectionFocus("afternoonSnack");
               }}
               error={mealValidationErrors.afternoonSnack}
-              isMinimized={shouldMinimize("afternoonSnack")}
-              onExpand={() => handleMealSectionExpand("afternoonSnack")}
             />
 
             <FoodSelector
@@ -2530,11 +2504,8 @@ function App() {
               selectedItems={watch("dinnerItems") || []}
               onChange={(items) => {
                 setValue("dinnerItems", items);
-                if (items.length > 0) handleMealSectionFocus("dinner");
               }}
               error={mealValidationErrors.dinner}
-              isMinimized={shouldMinimize("dinner")}
-              onExpand={() => handleMealSectionExpand("dinner")}
               isRequired={true}
             />
           </>
