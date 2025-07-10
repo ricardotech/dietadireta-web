@@ -852,21 +852,56 @@ function DietaPersonalizada({
             'definicao_ganho': 'definicao muscular + ganhar massa'
           };
 
+          // Map activity level values to backend enum values
+          const activityLevelMapping: Record<string, string> = {
+            'sedentario': 'sedentario',
+            'leve': 'leve',
+            'moderado': 'moderado',
+            'intenso': 'intenso',
+            'muito_intenso': 'muito_intenso'
+          };
+
+          // Map workout plan values to backend enum values
+          const workoutPlanMapping: Record<string, string> = {
+            'academia': 'academia',
+            'casa': 'casa',
+            'nenhum': 'nenhum'
+          };
+
           requestBody.userData = {
             weight: formData.weight,
             height: formData.height,
             age: formData.age,
             goal: goalMapping[formData.objective] || formData.objective,
+            calories: "2000", // Default value since it's not in the form
+            gender: "m", // Default value since it's not in the form
+            schedule: "07:00-10:00-12:30-15:30-19:30", // Default value since it's not in the form
+            activityLevel: "moderado", // Default value since it's not in the form
+            workoutPlan: "academia", // Default value since it's not in the form
+            breakfast: formData.breakfastItems?.join(', ') || "pao, cafe",
+            morningSnack: formData.includeLancheManha ? (formData.morningSnackItems?.join(', ') || "fruta") : "",
+            lunch: formData.lunchItems?.join(', ') || "arroz, feijao, carne",
+            afternoonSnack: formData.includeLancheTarde ? (formData.afternoonSnackItems?.join(', ') || "iogurte") : "",
+            dinner: formData.dinnerItems?.join(', ') || "salada, proteina"
+          };
+        } else {
+          // If no formData available, provide minimal default userData
+          console.warn('No formData available, using default userData for checkout');
+          requestBody.userData = {
+            weight: "70",
+            height: "175",
+            age: "30",
+            goal: "emagrecer",
             calories: "2000",
             gender: "m",
             schedule: "07:00-10:00-12:30-15:30-19:30",
             activityLevel: "moderado",
             workoutPlan: "academia",
-            breakfast: formData.breakfastItems.join(', ') || "pao, cafe",
-            morningSnack: formData.includeLancheManha ? (formData.morningSnackItems.join(', ') || "fruta") : "",
-            lunch: formData.lunchItems.join(', ') || "arroz, feijao, carne",
-            afternoonSnack: formData.includeLancheTarde ? (formData.afternoonSnackItems.join(', ') || "iogurte") : "",
-            dinner: formData.dinnerItems.join(', ') || "salada, proteina"
+            breakfast: "pao, cafe",
+            morningSnack: "fruta",
+            lunch: "arroz, feijao, carne",
+            afternoonSnack: "iogurte",
+            dinner: "salada, proteina"
           };
         }
       }
@@ -882,22 +917,24 @@ function DietaPersonalizada({
         body: JSON.stringify(requestBody),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create checkout');
-      }
-
       const data = await response.json();
       console.log('Checkout API Response:', data);
+
+      if (!response.ok) {
+        const errorMessage = data.error || 'Failed to create checkout';
+        throw new Error(errorMessage);
+      }
 
       if (data.success) {
         setOrderData(data.data);
         return data;
       }
 
-      throw new Error('Invalid checkout response');
+      throw new Error(data.error || 'Invalid checkout response');
     } catch (error) {
       console.error('Error creating checkout:', error);
-      toast.error('Erro ao criar pedido. Tente novamente.');
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao criar pedido. Tente novamente.';
+      toast.error(errorMessage);
       return null;
     } finally {
       setIsCreatingCheckout(false);
