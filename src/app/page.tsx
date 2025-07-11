@@ -1607,7 +1607,7 @@ function DietaPersonalizada({
                     </div>
                   ) : (
                     <>
-                      {user ? 'Desbloquear por R$9,90' : 'Criar Conta e Desbloquear'}
+                      {user ? 'Desbloquear por R$19,90' : 'Criar Conta e Desbloquear'}
                       <span>
                         <ArrowRight className="inline-block w-8 h-8 ml-2 -mt-2" />
                       </span>
