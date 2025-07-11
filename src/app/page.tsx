@@ -2065,7 +2065,7 @@ function DietaPersonalizada({
                   <button
                     onClick={() => {
                       // In a real implementation, you'd get the PIX code from the backend
-                      const pixCode = "00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-426614174000520400005303986540510.005802BR5913NUTRI DIETA6009SAO PAULO62140510DIETA123456304B2A2";
+                      const pixCode = `${orderData.qrCodeUrl}`
                       navigator.clipboard.writeText(pixCode);
                       toast.success("Código PIX copiado!");
                     }}
