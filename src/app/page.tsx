@@ -31,6 +31,10 @@ const formSchema = z.object({
     "Idade deve ser um número válido"
   ),
   objective: z.string().min(1, "Por favor, selecione qual é o seu objetivo principal"),
+  frequenciaTreino: z.string().min(1, "Por favor, selecione sua frequência de treino"),
+  condicoesSaude: z.array(z.string()).optional(),
+  restricoesAlimentares: z.array(z.string()).optional(),
+  alergiasAlimentares: z.string().optional(),
   // calories: z.string().min(1, "Por favor, selecione quantas calorias você deseja consumir por dia"),
   // schedule: z.string().min(1, "Por favor, selecione o horário que melhor se adapta à sua rotina"),
   includeCafeManha: z.boolean(),
@@ -336,6 +340,44 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
     { value: "ganhar_massa", emoji: "💪", label: "Ganhar Massa Muscular" },
   ];
 
+  const trainingFrequencyOptions = [
+    { 
+      value: "1-3", 
+      emoji: "🏃‍♂️", 
+      label: "Iniciante",
+      description: "1 a 3 dias por semana"
+    },
+    { 
+      value: "3-5", 
+      emoji: "💪", 
+      label: "Intermediário",
+      description: "3 a 5 dias por semana"
+    },
+    { 
+      value: "5-7", 
+      emoji: "🏋️‍♂️", 
+      label: "Avançado",
+      description: "5 a 7 dias por semana"
+    },
+  ];
+
+  const healthConditions = [
+    { value: 'diabetes', label: 'Diabetes', emoji: '🩺' },
+    { value: 'hipertensao', label: 'Hipertensão', emoji: '❤️' },
+    { value: 'colesterol_alto', label: 'Colesterol Alto', emoji: '🫀' },
+    { value: 'intolerancia_lactose', label: 'Intolerância à Lactose', emoji: '🥛' },
+    { value: 'doenca_celiaca', label: 'Doença Celíaca', emoji: '🌾' },
+    { value: 'gastrite', label: 'Gastrite', emoji: '💊' },
+    { value: 'refluxo', label: 'Refluxo', emoji: '🔥' },
+  ];
+
+  const dietaryRestrictions = [
+    { value: 'vegetariano', label: 'Vegetariano', emoji: '🥗' },
+    { value: 'vegano', label: 'Vegano', emoji: '🌱' },
+    { value: 'sem_gluten', label: 'Sem Glúten', emoji: '🌾' },
+    { value: 'sem_lactose', label: 'Sem Lactose', emoji: '🥛' },
+    { value: 'low_carb', label: 'Low Carb', emoji: '🥩' },
+  ];
 
   // const schedules = [
   //   { value: "custom", label: "Tenho meu próprio horário" },
@@ -471,6 +513,145 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                 {errors.objective.message}
               </p>
             )}
+          </div>
+
+          <div>
+            <Controller
+              name="frequenciaTreino"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-800">Frequência de Treino</label>
+                  <div className="space-y-3 mt-2">
+                    {trainingFrequencyOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => field.onChange(option.value)}
+                        className={`w-full p-4 rounded-lg border-2 transition-all duration-200 text-left ${field.value === option.value
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                      >
+                        <div className="flex items-center">
+                          <div className="text-2xl mr-3">{option.emoji}</div>
+                          <div className="flex-1">
+                            <div className="font-medium">{option.label}</div>
+                            <div className="text-sm text-gray-600">{option.description}</div>
+                          </div>
+                          {field.value === option.value && (
+                            <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                              <Check className="w-4 h-4 text-white" />
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            />
+            {errors.frequenciaTreino && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.frequenciaTreino.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller
+              name="condicoesSaude"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-800">Condições de Saúde (opcional)</label>
+                  <p className="text-sm text-gray-600">Selecione se você possui alguma condição de saúde</p>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {healthConditions.map((condition) => (
+                      <button
+                        key={condition.value}
+                        type="button"
+                        onClick={() => {
+                          const currentValues = field.value || [];
+                          if (currentValues.includes(condition.value)) {
+                            field.onChange(currentValues.filter((v: string) => v !== condition.value));
+                          } else {
+                            field.onChange([...currentValues, condition.value]);
+                          }
+                        }}
+                        className={`p-3 rounded-lg border-2 transition-all duration-200 text-left text-sm ${
+                          field.value?.includes(condition.value)
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <span className="mr-2">{condition.emoji}</span>
+                          <span>{condition.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            />
+          </div>
+
+          <div>
+            <Controller
+              name="restricoesAlimentares"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-800">Restrições Alimentares (opcional)</label>
+                  <p className="text-sm text-gray-600">Selecione suas preferências alimentares</p>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {dietaryRestrictions.map((restriction) => (
+                      <button
+                        key={restriction.value}
+                        type="button"
+                        onClick={() => {
+                          const currentValues = field.value || [];
+                          if (currentValues.includes(restriction.value)) {
+                            field.onChange(currentValues.filter((v: string) => v !== restriction.value));
+                          } else {
+                            field.onChange([...currentValues, restriction.value]);
+                          }
+                        }}
+                        className={`p-3 rounded-lg border-2 transition-all duration-200 text-left text-sm ${
+                          field.value?.includes(restriction.value)
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <span className="mr-2">{restriction.emoji}</span>
+                          <span>{restriction.label}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            />
+          </div>
+
+          <div>
+            <Controller
+              name="alergiasAlimentares"
+              control={control}
+              render={({ field }) => (
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-800">Alergias Alimentares (opcional)</label>
+                  <Input
+                    {...field}
+                    placeholder="Ex: amendoim, frutos do mar, ovo..."
+                    className="py-3 px-4"
+                  />
+                </div>
+              )}
+            />
           </div>
 
           {/* <div>
