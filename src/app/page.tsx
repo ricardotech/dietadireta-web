@@ -493,17 +493,55 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
               name="gender"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger className={`py-8 px-4 text-xl ${errors.gender ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}>
-                    <SelectValue placeholder="Selecione seu gênero" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="feminino">Feminino</SelectItem>
-                    <SelectItem value="outro">Outro</SelectItem>
-                    <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-800">Gênero</label>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('masculino')}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === 'masculino'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">👨</div>
+                      <div className="font-medium text-sm">Masculino</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('feminino')}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === 'feminino'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">👩</div>
+                      <div className="font-medium text-sm">Feminino</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('outro')}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === 'outro'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">🧑</div>
+                      <div className="font-medium text-sm">Outro</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => field.onChange('prefiro_nao_dizer')}
+                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === 'prefiro_nao_dizer'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="text-2xl mb-2">🤐</div>
+                      <div className="font-medium text-sm">Prefiro não dizer</div>
+                    </button>
+                  </div>
+                </div>
               )}
             />
             {errors.gender && (
