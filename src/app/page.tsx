@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Home, FileText, User, HelpCircle, LogOut, X, Check, Lock, ArrowRight, MenuIcon, AlertCircle, LineChart, CheckCircle, Pencil, Copy, Download, Loader2 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
@@ -30,6 +31,9 @@ const formSchema = z.object({
     (val) => !isNaN(Number(val)) && Number(val) > 0,
     "Idade deve ser um número válido"
   ),
+  gender: z.enum(['masculino', 'feminino', 'outro', 'prefiro_nao_dizer'], {
+    required_error: "Por favor, selecione seu gênero",
+  }),
   objective: z.string().min(1, "Por favor, selecione qual é o seu objetivo principal"),
   frequenciaTreino: z.string().min(1, "Por favor, selecione sua frequência de treino"),
   condicoesSaude: z.array(z.string()).optional(),
@@ -483,6 +487,32 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
 
           <div>
             <Controller
+              name="gender"
+              control={control}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <SelectTrigger className={`py-8 px-4 text-xl ${errors.gender ? 'border-red-500 focus:border-red-500 focus:ring-red-500 focus:ring-2' : ''}`}>
+                    <SelectValue placeholder="Selecione seu gênero" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="masculino">Masculino</SelectItem>
+                    <SelectItem value="feminino">Feminino</SelectItem>
+                    <SelectItem value="outro">Outro</SelectItem>
+                    <SelectItem value="prefiro_nao_dizer">Prefiro não dizer</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.gender && (
+              <p className="text-red-500 text-sm mt-1 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-1" />
+                {errors.gender.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Controller
               name="objective"
               control={control}
               render={({ field }) => (
@@ -862,7 +892,7 @@ function DietaPersonalizada({
           age: formData?.age || '30',
           goal: formData?.objective || 'emagrecer',
           calories: '2000',
-          gender: 'm', // Fixed: use valid gender enum
+          gender: formData?.gender || 'masculino',
           schedule: 'padrao', // Fixed: use valid schedule value
           activityLevel: 'moderado', // Fixed: use valid activity level enum
           workoutPlan: 'nenhum', // Fixed: use valid workout plan enum
@@ -1055,7 +1085,7 @@ function DietaPersonalizada({
             age: formData.age,
             goal: goalMapping[formData.objective] || formData.objective,
             calories: "2000", // Default value since it's not in the form
-            gender: "m", // Default value since it's not in the form
+            gender: formData.gender || "masculino",
             schedule: "07:00-10:00-12:30-15:30-19:30", // Default value since it's not in the form
             activityLevel: "moderado", // Default value since it's not in the form
             workoutPlan: "academia", // Default value since it's not in the form
@@ -1074,7 +1104,7 @@ function DietaPersonalizada({
             age: "30",
             goal: "emagrecer",
             calories: "2000",
-            gender: "m",
+            gender: "masculino",
             schedule: "07:00-10:00-12:30-15:30-19:30",
             activityLevel: "moderado",
             workoutPlan: "academia",
@@ -2513,6 +2543,7 @@ function App() {
       weight: '',
       height: '',
       age: '',
+      gender: 'masculino',
       objective: '',
       // calories: '',
       // schedule: '',
