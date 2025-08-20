@@ -10,6 +10,7 @@ import { useForm, Controller, Control, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { FoodSelector } from "@/components/FoodSelector";
+import { SupplementSelector } from "@/components/SupplementSelector";
 import { Badge } from "@/components/ui/badge";
 import { AuthModal } from "@/components/AuthModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +40,8 @@ const formSchema = z.object({
   condicoesSaude: z.array(z.string()).optional(),
   restricoesAlimentares: z.array(z.string()).optional(),
   alergiasAlimentares: z.string().optional(),
+  usesSupplements: z.boolean(),
+  supplements: z.array(z.string()),
   // calories: z.string().min(1, "Por favor, selecione quantas calorias você deseja consumir por dia"),
   // schedule: z.string().min(1, "Por favor, selecione o horário que melhor se adapta à sua rotina"),
   includeCafeManha: z.boolean(),
@@ -901,6 +904,8 @@ function DietaPersonalizada({
           lunch: formData?.lunchItems?.join(', ') || 'frango, arroz, verduras',
           afternoonSnack: formData?.includeLancheTarde ? (formData?.afternoonSnackItems?.join(', ') || 'iogurte, frutas') : '',
           dinner: formData?.dinnerItems?.join(', ') || 'peixe, batata, salada',
+          usesSupplements: formData?.usesSupplements || false,
+          supplements: formData?.supplements?.join(', ') || '',
         }),
       });
 
@@ -1093,7 +1098,9 @@ function DietaPersonalizada({
             morningSnack: formData.includeLancheManha ? (formData.morningSnackItems?.join(', ') || "fruta") : "",
             lunch: formData.lunchItems?.join(', ') || "arroz, feijao, carne",
             afternoonSnack: formData.includeLancheTarde ? (formData.afternoonSnackItems?.join(', ') || "iogurte") : "",
-            dinner: formData.dinnerItems?.join(', ') || "salada, proteina"
+            dinner: formData.dinnerItems?.join(', ') || "salada, proteina",
+            usesSupplements: formData.usesSupplements || false,
+            supplements: formData.supplements?.join(', ') || ''
           };
         } else {
           // If no formData available, provide minimal default userData
@@ -2545,6 +2552,10 @@ function App() {
       age: '',
       gender: 'masculino',
       objective: '',
+      frequenciaTreino: '',
+      condicoesSaude: [],
+      restricoesAlimentares: [],
+      alergiasAlimentares: '',
       // calories: '',
       // schedule: '',
       includeCafeManha: true,
@@ -2557,6 +2568,8 @@ function App() {
       lunchItems: [],
       afternoonSnackItems: [],
       dinnerItems: [],
+      usesSupplements: false,
+      supplements: [],
     }
   });
 
@@ -2756,6 +2769,20 @@ function App() {
               }}
               error={mealValidationErrors.dinner}
               isRequired={true}
+            />
+
+            <SupplementSelector
+              usesSupplements={watch("usesSupplements") || false}
+              onToggleSupplements={(uses) => {
+                setValue("usesSupplements", uses);
+                if (!uses) {
+                  setValue("supplements", []);
+                }
+              }}
+              selectedSupplements={watch("supplements") || []}
+              onSupplementsChange={(items) => {
+                setValue("supplements", items);
+              }}
             />
           </>
         )}
