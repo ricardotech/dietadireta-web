@@ -17,6 +17,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePDF } from 'react-to-pdf';
 import { toast } from "sonner";
 import { DietPDFComponent } from "@/components/DietPDFComponent";
+import type { 
+  ParsedDietData, 
+  OrderData, 
+  Step,
+  MealItem,
+  MealSection
+} from "@/types/types";
 
 // Form validation schema
 const formSchema = z.object({
@@ -794,11 +801,11 @@ function DietaPersonalizada({
 }: {
   onClick: () => void,
   isSubmitting: boolean,
-  currentStep: 'form' | 'loading' | 'preview',
+  currentStep: Step,
   onLoadingComplete: () => void,
   formData?: FormData,
-  dietData: any,
-  setDietData: (data: any) => void,
+  dietData: ParsedDietData | null,
+  setDietData: (data: ParsedDietData | null) => void,
   isPaymentConfirmed: boolean,
   setIsPaymentConfirmed: (confirmed: boolean) => void,
   showRegenerateInput: boolean,
@@ -808,13 +815,13 @@ function DietaPersonalizada({
   isRegenerating: boolean,
   hasRegenerated: boolean,
   handleRegenerateDiet: () => Promise<void>,
-  parseDietResponse: (response: string) => any,
+  parseDietResponse: (response: string) => ParsedDietData | null,
   setHasRegenerated: (value: boolean) => void
 }) {
   const [loadingStep, setLoadingStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [orderData, setOrderData] = useState<any>(null);
+  const [orderData, setOrderData] = useState<OrderData | null>(null);
   const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -980,7 +987,8 @@ function DietaPersonalizada({
           },
           morningSnack: null,
           afternoonSnack: null,
-          totalCalories: 1425
+          totalCalories: 1425,
+          notes: "Dieta personalizada em processamento..."
         });
         console.log('dietData set successfully');
         return data;
@@ -1052,7 +1060,7 @@ function DietaPersonalizada({
       }
 
       // Prepare request body
-      const requestBody: any = {};
+      const requestBody: Record<string, any> = {};
 
       // Check if dietId is a valid UUID format
       const isValidUUID = (uuid: string) => {
@@ -1973,7 +1981,7 @@ function DietaPersonalizada({
                             <div>
                               <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {displayDietData.breakfast.main?.map((item: any, index: number) => (
+                                {displayDietData.breakfast.main?.map((item, index) => (
                                   <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
                                     <div className="flex justify-between items-center">
                                       <div>
@@ -1992,7 +2000,7 @@ function DietaPersonalizada({
                               <div>
                                 <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {displayDietData.breakfast.alternatives.map((item: any, index: number) => (
+                                  {displayDietData.breakfast.alternatives.map((item, index) => (
                                     <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                                       <div className="flex justify-between items-center">
                                         <div>
@@ -2022,7 +2030,7 @@ function DietaPersonalizada({
                             <div>
                               <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {displayDietData.morningSnack.main?.map((item: any, index: number) => (
+                                {displayDietData.morningSnack.main?.map((item, index) => (
                                   <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
                                     <div className="flex justify-between items-center">
                                       <div>
@@ -2041,7 +2049,7 @@ function DietaPersonalizada({
                               <div>
                                 <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {displayDietData.morningSnack.alternatives.map((item: any, index: number) => (
+                                  {displayDietData.morningSnack.alternatives.map((item, index) => (
                                     <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                                       <div className="flex justify-between items-center">
                                         <div>
@@ -2071,7 +2079,7 @@ function DietaPersonalizada({
                             <div>
                               <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {displayDietData.lunch.main?.map((item: any, index: number) => (
+                                {displayDietData.lunch.main?.map((item, index) => (
                                   <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
                                     <div className="flex justify-between items-center">
                                       <div>
@@ -2090,7 +2098,7 @@ function DietaPersonalizada({
                               <div>
                                 <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {displayDietData.lunch.alternatives.map((item: any, index: number) => (
+                                  {displayDietData.lunch.alternatives.map((item, index) => (
                                     <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                                       <div className="flex justify-between items-center">
                                         <div>
@@ -2120,7 +2128,7 @@ function DietaPersonalizada({
                             <div>
                               <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {displayDietData.afternoonSnack.main?.map((item: any, index: number) => (
+                                {displayDietData.afternoonSnack.main?.map((item, index) => (
                                   <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
                                     <div className="flex justify-between items-center">
                                       <div>
@@ -2139,7 +2147,7 @@ function DietaPersonalizada({
                               <div>
                                 <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {displayDietData.afternoonSnack.alternatives.map((item: any, index: number) => (
+                                  {displayDietData.afternoonSnack.alternatives.map((item, index) => (
                                     <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                                       <div className="flex justify-between items-center">
                                         <div>
@@ -2169,7 +2177,7 @@ function DietaPersonalizada({
                             <div>
                               <h4 className="text-md font-medium text-gray-700 mb-2">Plano Principal</h4>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {displayDietData.dinner.main?.map((item: any, index: number) => (
+                                {displayDietData.dinner.main?.map((item, index) => (
                                   <div key={index} className="bg-green-50 p-3 rounded-lg border border-green-200">
                                     <div className="flex justify-between items-center">
                                       <div>
@@ -2188,7 +2196,7 @@ function DietaPersonalizada({
                               <div>
                                 <h4 className="text-md font-medium text-blue-700 mb-2">Alternativas</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {displayDietData.dinner.alternatives.map((item: any, index: number) => (
+                                  {displayDietData.dinner.alternatives.map((item, index) => (
                                     <div key={index} className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                                       <div className="flex justify-between items-center">
                                         <div>
@@ -2271,9 +2279,9 @@ function DietaPersonalizada({
 
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <div className="bg-white border-2 border-gray-200 rounded-lg mx-auto flex items-center justify-center mb-4 overflow-hidden">
-                  {orderData?.qrCodeUrl ? (
+                  {(orderData?.qrCodeUrl || orderData?.last_transaction?.qr_code_url) ? (
                     <iframe
-                      src={orderData.qrCodeUrl}
+                      src={orderData.qrCodeUrl || orderData.last_transaction?.qr_code_url}
                       className="w-[250px] h-[250px] overflow-hidden"
                       title="QR Code PIX"
                     />
@@ -2294,14 +2302,18 @@ function DietaPersonalizada({
                   )} */}
                 </div>
 
-                {/* PIX Copy Button - only show if we have order data */}
-                {orderData?.qrCodeUrl && (
+                {/* PIX Copy Button - only show if we have PIX code */}
+                {(orderData?.qrCode || orderData?.last_transaction?.qr_code) && (
                   <button
                     onClick={() => {
-                      // In a real implementation, you'd get the PIX code from the backend
-                      const pixCode = `${orderData.qrCodeUrl}`
-                      navigator.clipboard.writeText(pixCode);
-                      toast.success("Código PIX copiado!");
+                      // Use qrCode (the actual PIX code) or fallback to last_transaction.qr_code
+                      const pixCode = orderData.qrCode || orderData.last_transaction?.qr_code || '';
+                      if (pixCode) {
+                        navigator.clipboard.writeText(pixCode);
+                        toast.success("Código PIX copiado!");
+                      } else {
+                        toast.error("Código PIX não disponível");
+                      }
                     }}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
                   >
@@ -2353,12 +2365,12 @@ function App() {
   const [regenerateFeedback, setRegenerateFeedback] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [hasRegenerated, setHasRegenerated] = useState(false);
-  const [dietData, setDietData] = useState<any>(null);
+  const [dietData, setDietData] = useState<ParsedDietData | null>(null);
   const [isPaymentConfirmed, setIsPaymentConfirmed] = useState(false);
   const { user } = useAuth();
 
   // Function to parse AI diet response into structured data
-  const parseDietResponse = (aiResponse: string) => {
+  const parseDietResponse = (aiResponse: string): ParsedDietData | null => {
     try {
       console.log('Parsing AI response:', aiResponse);
       
@@ -2397,7 +2409,7 @@ function App() {
           console.log('Successfully parsed JSON diet data with alternatives:', jsonData);
           
           // Ensure all meal arrays have exactly 3 items or fill with placeholders
-          const ensureThreeItems = (mealArray: any[], mealName: string) => {
+          const ensureThreeItems = (mealArray: any[], mealName: string): MealItem[] => {
             if (!Array.isArray(mealArray)) return [];
             const items = mealArray.slice(0, 3); // Take first 3 items
             while (items.length < 3) {
@@ -2411,7 +2423,7 @@ function App() {
           };
 
           // Process meals with main and alternative options
-          const processMeal = (mealData: any, mealName: string) => {
+          const processMeal = (mealData: any, mealName: string): MealSection | null => {
             if (!mealData || mealData === null) return null;
             return {
               main: ensureThreeItems(mealData.main || [], mealName),
@@ -2419,12 +2431,20 @@ function App() {
             };
           };
           
+          const breakfast = processMeal(jsonData.breakfast, 'café da manhã');
+          const lunch = processMeal(jsonData.lunch, 'almoço');
+          const dinner = processMeal(jsonData.dinner, 'jantar');
+          
+          if (!breakfast || !lunch || !dinner) {
+            return null;
+          }
+          
           return {
-            breakfast: processMeal(jsonData.breakfast, 'café da manhã'),
+            breakfast,
             morningSnack: processMeal(jsonData.morningSnack, 'lanche da manhã'),
-            lunch: processMeal(jsonData.lunch, 'almoço'),
+            lunch,
             afternoonSnack: processMeal(jsonData.afternoonSnack, 'lanche da tarde'),
-            dinner: processMeal(jsonData.dinner, 'jantar'),
+            dinner,
             totalCalories: jsonData.totalCalories || 0,
             notes: jsonData.notes || 'Sua dieta personalizada foi criada com base nas suas preferências alimentares.',
             fullResponse: aiResponse
@@ -2436,51 +2456,11 @@ function App() {
 
       // Final fallback
       console.log('Using fallback diet structure');
-      return {
-        breakfast: {
-          main: [
-            { name: "Erro ao processar dieta", quantity: "Veja detalhes abaixo", calories: 0 }
-          ],
-          alternatives: []
-        },
-        morningSnack: null,
-        lunch: {
-          main: [],
-          alternatives: []
-        },
-        afternoonSnack: null,
-        dinner: {
-          main: [],
-          alternatives: []
-        },
-        totalCalories: 0,
-        notes: aiResponse || "Erro ao carregar dados da dieta.",
-        fullResponse: aiResponse
-      };
+      return null;
     } catch (error) {
       console.error('Error parsing diet response:', error);
       // Ultimate fallback
-      return {
-        breakfast: {
-          main: [
-            { name: "Erro ao processar dieta", quantity: "Veja detalhes abaixo", calories: 0 }
-          ],
-          alternatives: []
-        },
-        morningSnack: null,
-        lunch: {
-          main: [],
-          alternatives: []
-        },
-        afternoonSnack: null,
-        dinner: {
-          main: [],
-          alternatives: []
-        },
-        totalCalories: 0,
-        notes: aiResponse || "Erro ao carregar dados da dieta.",
-        fullResponse: aiResponse
-      };
+      return null;
     }
   };
 
@@ -2537,7 +2517,9 @@ function App() {
               console.log('Found existing paid diet:', data.data);
               // Parse and set the existing diet data
               const parsedDiet = parseDietResponse(data.data.aiResponse);
-              setDietData({...parsedDiet, dietId: data.data.dietId});
+              if (parsedDiet) {
+                setDietData({...parsedDiet, dietId: data.data.dietId});
+              }
               setDietStep('preview');
               setIsPaymentConfirmed(true);
               toast.success('Sua dieta já paga foi carregada!');
@@ -2677,7 +2659,9 @@ function App() {
         if (data.success) {
           // Parse and set the new diet data
           const parsedDiet = parseDietResponse(data.data.aiResponse);
-          setDietData({...parsedDiet, dietId: data.data.dietId});
+          if (parsedDiet) {
+            setDietData({...parsedDiet, dietId: data.data.dietId});
+          }
           setHasRegenerated(true);
           setShowRegenerateInput(false);
           setRegenerateFeedback('');
