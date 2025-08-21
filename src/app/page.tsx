@@ -518,28 +518,6 @@ function MedidasCorporais({ control, errors }: { control: Control<FormData>, err
                       <div className="text-2xl mb-2">👩</div>
                       <div className="font-medium text-sm">Feminino</div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => field.onChange('outro')}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === 'outro'
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                      <div className="text-2xl mb-2">🧑</div>
-                      <div className="font-medium text-sm">Outro</div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => field.onChange('prefiro_nao_dizer')}
-                      className={`p-4 rounded-lg border-2 transition-all duration-200 ${field.value === 'prefiro_nao_dizer'
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
-                        }`}
-                    >
-                      <div className="text-2xl mb-2">🤐</div>
-                      <div className="font-medium text-sm">Prefiro não dizer</div>
-                    </button>
                   </div>
                 </div>
               )}

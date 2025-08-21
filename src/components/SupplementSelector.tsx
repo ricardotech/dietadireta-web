@@ -92,58 +92,56 @@ export function SupplementSelector({
         </div>
 
         {/* Supplement Selection Grid */}
-        {usesSupplements && (
-          <div className="border-t border-[#F0F0F0] p-4">
-            <div className="mb-4">
-              <h3 className="text-md font-semibold text-gray-700 mb-2">
-                Quais suplementos você usa?
-              </h3>
-              <p className="text-sm text-gray-500">
-                Marque todos que se aplicam - isso ajudará a ajustar sua dieta
+        <div className="border-t border-[#F0F0F0] p-4">
+          <div className="mb-4">
+            <h3 className="text-md font-semibold text-gray-700 mb-2">
+              Quais suplementos você usa?
+            </h3>
+            <p className="text-sm text-gray-500">
+              Marque todos que se aplicam - isso ajudará a ajustar sua dieta
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {availableSupplements.map((supplement) => {
+              const isSelected = selectedSupplements.includes(supplement.value);
+
+              return (
+                <div
+                  key={supplement.value}
+                  className={`
+                    border rounded-lg p-3 cursor-pointer transition-all duration-200
+                    ${isSelected
+                      ? 'border-purple-500 bg-purple-50'
+                      : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
+                    }
+                  `}
+                  onClick={() => handleSupplementToggle(supplement.value)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={isSelected}
+                      className="data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                    />
+                    <span className="text-xl">{supplement.icon}</span>
+                    <Label className="text-sm font-medium cursor-pointer">
+                      {supplement.label}
+                    </Label>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedSupplements.length > 0 && (
+            <div className="mt-4 p-3 bg-purple-50 rounded-lg">
+              <p className="text-sm text-purple-700">
+                <strong>{selectedSupplements.length} suplemento(s) selecionado(s).</strong> 
+                {' '}A dieta será ajustada considerando o uso destes suplementos.
               </p>
             </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {availableSupplements.map((supplement) => {
-                const isSelected = selectedSupplements.includes(supplement.value);
-
-                return (
-                  <div
-                    key={supplement.value}
-                    className={`
-                      border rounded-lg p-3 cursor-pointer transition-all duration-200
-                      ${isSelected
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50'
-                      }
-                    `}
-                    onClick={() => handleSupplementToggle(supplement.value)}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={isSelected}
-                        className="data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
-                      />
-                      <span className="text-xl">{supplement.icon}</span>
-                      <Label className="text-sm font-medium cursor-pointer">
-                        {supplement.label}
-                      </Label>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {selectedSupplements.length > 0 && (
-              <div className="mt-4 p-3 bg-purple-50 rounded-lg">
-                <p className="text-sm text-purple-700">
-                  <strong>{selectedSupplements.length} suplemento(s) selecionado(s).</strong> 
-                  {' '}A dieta será ajustada considerando o uso destes suplementos.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
