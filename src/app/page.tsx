@@ -999,49 +999,10 @@ function DietaPersonalizada({
     } catch (error) {
       console.error('Error generating diet:', error);
       // Fallback to mock data if API fails
-      const mockData = {
-        dietId: 'fallback-diet-id',
-        breakfast: {
-          main: [
-            { name: "Tapioca + Frango", quantity: "1 unidade média", calories: 250 },
-            { name: "Café com Leite", quantity: "200ml", calories: 80 },
-            { name: "Banana", quantity: "1 unidade", calories: 90 }
-          ],
-          alternatives: [
-            { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
-            { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
-            { name: "Maçã", quantity: "1 unidade", calories: 95 }
-          ]
-        },
-        lunch: {
-          main: [
-            { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-            { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-            { name: "Feijão", quantity: "2 colheres", calories: 140 }
-          ],
-          alternatives: [
-            { name: "Peixe Assado", quantity: "150g", calories: 320 },
-            { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
-            { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
-          ]
-        },
-        dinner: {
-          main: [
-            { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-            { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-            { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-          ],
-          alternatives: [
-            { name: "Peito de Peru", quantity: "120g", calories: 275 },
-            { name: "Quinoa", quantity: "3 colheres", calories: 125 },
-            { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
-          ]
-        },
-        morningSnack: null,
-        afternoonSnack: null,
-        totalCalories: 1980,
-        notes: "Lembre-se de beber pelo menos 2 litros de água por dia e fazer as refeições nos horários indicados."
-      };
+      const mockData = generateFallbackDietData(
+        'fallback-diet-id',
+        "Lembre-se de beber pelo menos 2 litros de água por dia e fazer as refeições nos horários indicados."
+      );
       console.log('Setting fallback dietData:', mockData);
       setDietData(mockData);
       return mockData;
@@ -1370,48 +1331,10 @@ function DietaPersonalizada({
           toast.success('Pagamento confirmado! Sua dieta está sendo gerada...');
           // Keep existing diet data or set fallback if none exists
           if (!dietData || !dietData.breakfast) {
-            const fallbackData = {
-              breakfast: {
-                main: [
-                  { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
-                  { name: "Café com Leite", quantity: "200ml", calories: 80 },
-                  { name: "Banana", quantity: "1 unidade", calories: 90 }
-                ],
-                alternatives: [
-                  { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
-                  { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
-                  { name: "Maçã", quantity: "1 unidade", calories: 95 }
-                ]
-              },
-              lunch: {
-                main: [
-                  { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-                  { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-                  { name: "Feijão", quantity: "2 colheres", calories: 140 }
-                ],
-                alternatives: [
-                  { name: "Peixe Assado", quantity: "150g", calories: 320 },
-                  { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
-                  { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
-                ]
-              },
-              dinner: {
-                main: [
-                  { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-                  { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-                  { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-                ],
-                alternatives: [
-                  { name: "Peito de Peru", quantity: "120g", calories: 275 },
-                  { name: "Quinoa", quantity: "3 colheres", calories: 125 },
-                  { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
-                ]
-              },
-              morningSnack: null,
-              afternoonSnack: null,
-              totalCalories: 1980,
-              notes: "Sua dieta está sendo gerada. Esta é uma prévia que será substituída pela sua dieta personalizada em breve."
-            };
+            const fallbackData = generateFallbackDietData(
+              undefined,
+              "Sua dieta está sendo gerada. Esta é uma prévia que será substituída pela sua dieta personalizada em breve."
+            );
             
             setDietData(fallbackData);
             localStorage.setItem('dietabox-diet-data', JSON.stringify(fallbackData));
@@ -1421,48 +1344,10 @@ function DietaPersonalizada({
           toast.success('Pagamento confirmado! Sua dieta estará disponível em breve.');
           // Keep existing diet data or set fallback if none exists
           if (!dietData || !dietData.breakfast) {
-            const fallbackData = {
-              breakfast: {
-                main: [
-                  { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
-                  { name: "Café com Leite", quantity: "200ml", calories: 80 },
-                  { name: "Banana", quantity: "1 unidade", calories: 90 }
-                ],
-                alternatives: [
-                  { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
-                  { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
-                  { name: "Maçã", quantity: "1 unidade", calories: 95 }
-                ]
-              },
-              lunch: {
-                main: [
-                  { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-                  { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-                  { name: "Feijão", quantity: "2 colheres", calories: 140 }
-                ],
-                alternatives: [
-                  { name: "Peixe Assado", quantity: "150g", calories: 320 },
-                  { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
-                  { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
-                ]
-              },
-              dinner: {
-                main: [
-                  { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-                  { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-                  { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-                ],
-                alternatives: [
-                  { name: "Peito de Peru", quantity: "120g", calories: 275 },
-                  { name: "Quinoa", quantity: "3 colheres", calories: 125 },
-                  { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
-                ]
-              },
-              morningSnack: null,
-              afternoonSnack: null,
-              totalCalories: 1980,
-              notes: "Sua dieta personalizada foi liberada! Acompanhe as refeições sugeridas e lembre-se de beber bastante água."
-            };
+            const fallbackData = generateFallbackDietData(
+              undefined,
+              "Sua dieta personalizada foi liberada! Acompanhe as refeições sugeridas e lembre-se de beber bastante água."
+            );
             
             setDietData(fallbackData);
             localStorage.setItem('dietabox-diet-data', JSON.stringify(fallbackData));
@@ -1577,49 +1462,95 @@ function DietaPersonalizada({
     );
   };
 
-  // Get the diet data to display (either real data or fallback)
-  const displayDietData = dietData || {
-    breakfast: {
-      main: [
-        { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
-        { name: "Café com Leite", quantity: "200ml", calories: 80 },
-        { name: "Banana", quantity: "1 unidade", calories: 90 }
-      ],
-      alternatives: [
-        { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
-        { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
-        { name: "Maçã", quantity: "1 unidade", calories: 95 }
-      ]
-    },
-    lunch: {
-      main: [
-        { name: "Frango Grelhado", quantity: "150g", calories: 330 },
-        { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
-        { name: "Feijão", quantity: "2 colheres", calories: 140 }
-      ],
-      alternatives: [
-        { name: "Peixe Assado", quantity: "150g", calories: 320 },
-        { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
-        { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
-      ]
-    },
-    dinner: {
-      main: [
-        { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
-        { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
-        { name: "Brócolis", quantity: "1 xícara", calories: 40 }
-      ],
-      alternatives: [
-        { name: "Peito de Peru", quantity: "120g", calories: 275 },
-        { name: "Quinoa", quantity: "3 colheres", calories: 125 },
-        { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
-      ]
-    },
-    morningSnack: null,
-    afternoonSnack: null,
-    totalCalories: 1980,
-    notes: "Sua dieta personalizada estará disponível após o pagamento. Esta é apenas uma prévia dos tipos de alimentos que incluiremos baseados nas suas preferências."
+  // Helper function to calculate total calories from meal data
+  const calculateTotalCalories = (dietData: any) => {
+    let total = 0;
+    
+    // Add breakfast calories
+    if (dietData.breakfast?.main) {
+      total += dietData.breakfast.main.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+    }
+    
+    // Add morning snack calories
+    if (dietData.morningSnack?.main) {
+      total += dietData.morningSnack.main.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+    }
+    
+    // Add lunch calories
+    if (dietData.lunch?.main) {
+      total += dietData.lunch.main.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+    }
+    
+    // Add afternoon snack calories
+    if (dietData.afternoonSnack?.main) {
+      total += dietData.afternoonSnack.main.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+    }
+    
+    // Add dinner calories
+    if (dietData.dinner?.main) {
+      total += dietData.dinner.main.reduce((sum: number, item: any) => sum + (item.calories || 0), 0);
+    }
+    
+    return total;
   };
+
+  // Helper function to generate fallback diet data
+  const generateFallbackDietData = (dietId?: string, notes?: string) => {
+    const data = {
+      ...(dietId && { dietId }),
+      breakfast: {
+        main: [
+          { name: "Tapioca com Frango", quantity: "1 unidade média", calories: 250 },
+          { name: "Café com Leite", quantity: "200ml", calories: 80 },
+          { name: "Banana", quantity: "1 unidade", calories: 90 }
+        ],
+        alternatives: [
+          { name: "Pão Integral + Ovo", quantity: "2 fatias + 1 ovo", calories: 240 },
+          { name: "Iogurte Natural", quantity: "200ml", calories: 85 },
+          { name: "Maçã", quantity: "1 unidade", calories: 95 }
+        ]
+      },
+      lunch: {
+        main: [
+          { name: "Frango Grelhado", quantity: "150g", calories: 330 },
+          { name: "Arroz Integral", quantity: "4 colheres", calories: 160 },
+          { name: "Feijão", quantity: "2 colheres", calories: 140 }
+        ],
+        alternatives: [
+          { name: "Peixe Assado", quantity: "150g", calories: 320 },
+          { name: "Batata Doce", quantity: "1 unidade média", calories: 165 },
+          { name: "Couve Refogada", quantity: "1 porção", calories: 135 }
+        ]
+      },
+      dinner: {
+        main: [
+          { name: "Salmão Grelhado", quantity: "120g", calories: 280 },
+          { name: "Batata Doce", quantity: "1 unidade média", calories: 130 },
+          { name: "Brócolis", quantity: "1 xícara", calories: 40 }
+        ],
+        alternatives: [
+          { name: "Peito de Peru", quantity: "120g", calories: 275 },
+          { name: "Quinoa", quantity: "3 colheres", calories: 125 },
+          { name: "Espinafre Refogado", quantity: "1 porção", calories: 45 }
+        ]
+      },
+      morningSnack: null,
+      afternoonSnack: null,
+      totalCalories: 0, // Will be calculated
+      notes: notes || "Sua dieta personalizada estará disponível após o pagamento. Esta é apenas uma prévia dos tipos de alimentos que incluiremos baseados nas suas preferências."
+    };
+    
+    // Calculate the total calories dynamically
+    data.totalCalories = calculateTotalCalories(data);
+    
+    return data;
+  };
+
+  // Fallback diet data
+  const fallbackDietData = generateFallbackDietData();
+  
+  // Get the diet data to display (either real data or fallback)
+  const displayDietData = dietData || fallbackDietData;
 
   return (
     <div className="w-full max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-100">
