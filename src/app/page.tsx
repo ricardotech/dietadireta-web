@@ -2584,7 +2584,7 @@ function App() {
       lunchItems: [],
       afternoonSnackItems: [],
       dinnerItems: [],
-      usesSupplements: false,
+      usesSupplements: true,
       supplements: [],
     }
   });
@@ -2788,7 +2788,7 @@ function App() {
             />
 
             <SupplementSelector
-              usesSupplements={watch("usesSupplements") || false}
+              usesSupplements={watch("usesSupplements") !== false}
               onToggleSupplements={(uses) => {
                 setValue("usesSupplements", uses);
                 if (!uses) {
