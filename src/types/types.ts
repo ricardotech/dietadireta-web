@@ -4,6 +4,8 @@ export interface User {
   email: string;
   phoneNumber?: string;
   cpf: string;
+  name?: string;
+  createdAt?: string;
 }
 
 export interface AuthResponse {
@@ -15,7 +17,7 @@ export interface AuthResponse {
 export interface SignUpRequest {
   email: string;
   password: string;
-  phoneNumber?: string;
+  phoneNumber: string;
   cpf: string;
 }
 
@@ -29,11 +31,19 @@ export interface MealItem {
   name: string;
   quantity: string;
   calories: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  grams?: number;
 }
 
 export interface MealSection {
   main: MealItem[];
   alternatives: MealItem[];
+  totalCalories?: number;
+  totalProtein?: number;
+  totalCarbs?: number;
+  totalFat?: number;
 }
 
 export interface DietPlan {

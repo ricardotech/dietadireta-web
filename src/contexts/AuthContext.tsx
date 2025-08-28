@@ -8,31 +8,7 @@ import React, {
   useEffect,
 } from "react";
 import { useRouter } from "next/navigation";
-
-type User = {
-  id: string;
-  email: string;
-  phoneNumber: string;
-  cpf: string;
-};
-
-type AuthResponse = {
-  user: User;
-  token: string;
-  userToken: string;
-};
-
-type SignUpData = {
-  email: string;
-  phoneNumber: string;
-  cpf: string;
-  password: string;
-};
-
-type SignInData = {
-  email: string;
-  password: string;
-};
+import { User, AuthResponse, SignUpRequest as SignUpData, SignInRequest as SignInData } from '@/types/types';
 
 type AuthContextData = {
   user: User | null;
